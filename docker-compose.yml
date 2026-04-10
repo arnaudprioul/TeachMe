@@ -1,0 +1,36 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: teachme-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-teachme}
+      POSTGRES_USER: ${DB_USER:-teachme}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-teachme_secret}
+    ports:
+      - "5433:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-teachme}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: teachme-redis
+    restart: unless-stopped
+    command: redis-server --save "" --appendonly no
+    ports:
+      - "5379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  db_data:

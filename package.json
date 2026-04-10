@@ -1,0 +1,41 @@
+{
+  "name": "teachme",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "dev": "concurrently -n frontend,webapp -c blue,cyan \"npm run dev:frontend\" \"npm run dev:webapp\"",
+    "dev:webapp": "npm run dev --workspace=packages/webapp",
+    "dev:frontend": "npm run dev --workspace=packages/frontend",
+
+    "build": "npm run build:frontend && npm run build:webapp",
+    "build:webapp": "npm run build --workspace=packages/webapp",
+    "build:frontend": "npm run build --workspace=packages/frontend",
+
+    "start": "concurrently -n frontend,webapp -c blue,cyan \"npm run start:frontend\" \"npm run start:webapp\"",
+    "start:webapp": "npm run start --workspace=packages/webapp",
+    "start:frontend": "npm run start --workspace=packages/frontend",
+
+    "docker:infra": "docker compose up -d",
+    "docker:infra:down": "docker compose down",
+
+    "docker:dev:up": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d",
+    "docker:dev:build": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
+    "docker:dev:down": "docker compose -f docker-compose.yml -f docker-compose.dev.yml down",
+
+    "docker:prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d",
+    "docker:prod:build": "docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build",
+    "docker:prod:down": "docker compose -f docker-compose.yml -f docker-compose.prod.yml down",
+
+    "tauri:dev": "concurrently -n frontend,webapp,tauri -c blue,cyan,magenta \"npm run dev:frontend\" \"npm run dev:webapp\" \"npm run dev --workspace=packages/desktop\"",
+    "tauri:build": "npm run build:webapp && npm run build --workspace=packages/desktop",
+    "tauri:icon": "npm run icon --workspace=packages/desktop --",
+
+    "postinstall": "node scripts/patch-pinia.js"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "sass": "^1.99.0",
+    "typescript": "^5.4.0"
+  },
+  "engines": { "node": ">=20.0.0" }
+}

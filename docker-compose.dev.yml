@@ -1,0 +1,64 @@
+# Dev override — adds hot-reload webapp + frontend (landing) containers
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  webapp:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: npm run dev:webapp
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/packages/webapp/node_modules
+      - /app/packages/webapp/.nuxt
+    ports:
+      - "5001:5001"
+    environment:
+      NODE_ENV: development
+      DB_TYPE: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-teachme}
+      DB_USER: ${DB_USER:-teachme}
+      DB_PASSWORD: ${DB_PASSWORD:-teachme_secret}
+      REDIS_URL: redis://redis:6379
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_FROM: ${SMTP_FROM:-noreply@teachme.local}
+      JWT_SECRET: ${JWT_SECRET:-dev_secret_change_in_prod}
+      OTP_TTL_SECONDS: ${OTP_TTL_SECONDS:-600}
+      OTP_RESEND_COOLDOWN_SECONDS: ${OTP_RESEND_COOLDOWN_SECONDS:-60}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: npm run dev:frontend
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/packages/frontend/node_modules
+      - /app/packages/frontend/.nuxt
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: development
+      APP_URL: ${APP_URL:-http://localhost:5001}
+    restart: unless-stopped
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: teachme-mailhog
+    restart: unless-stopped
+    ports:
+      - "5025:1025"  # SMTP
+      - "5080:8025"  # Web UI
+    logging:
+      driver: none
