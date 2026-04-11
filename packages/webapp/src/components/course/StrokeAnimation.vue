@@ -2,7 +2,20 @@
 import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
 import { useCourseContext } from '~/composables/useCourseContext'
 
-const props = defineProps<{ charId: string }>()
+const props = withDefaults(
+  defineProps<{
+    charId: string
+    /**
+     * The actual character glyph to display when the component falls
+     * back (no SVG file matches `charId` and no center-line stroke data
+     * exists in the module). Without this prop the fallback would print
+     * the raw `charId` (`'a'`, `'giyeok'`, …) which is meaningless to
+     * the learner — pass `char.symbol` so we render `あ` / `ㄱ` instead.
+     */
+    symbol?: string
+  }>(),
+  { symbol: '' },
+)
 const { module, courseKey } = useCourseContext()
 
 // Static SVGs across ALL courses (Vite requires literal globs)
@@ -110,9 +123,12 @@ defineExpose({ play, stop, isPlaying })
     <!-- Default: static SVG with stroke numbers and arrows -->
     <div v-if="!isPlaying && svgRaw" class="sa__static" v-html="svgRaw" />
 
-    <!-- Default fallback: just the character in font -->
+    <!-- Default fallback: just the character glyph in font. Prefer the
+         `symbol` prop (the rendered character) over `charId` (which is
+         a slug like 'a' or 'giyeok' and would be meaningless to the
+         learner). -->
     <div v-if="!isPlaying && !svgRaw" class="sa__fallback">
-      <span>{{ charId }}</span>
+      <span>{{ symbol || charId }}</span>
     </div>
 
     <!-- Playing: animate center-line strokes -->

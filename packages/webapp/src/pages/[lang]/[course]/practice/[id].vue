@@ -104,7 +104,7 @@ watch(next, (n) => {
           <!-- ── Hero: character + stroke order ── -->
           <div class="char-hero">
             <div class="char-hero__display">
-              <StrokeAnimation :char-id="charId" />
+              <StrokeAnimation :char-id="charId" :symbol="char.symbol" />
             </div>
 
             <div class="char-hero__info">
