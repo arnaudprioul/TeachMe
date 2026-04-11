@@ -10,16 +10,24 @@ const { lang, language, module, paths, tKey } = useCourseContext()
 
 const course = computed(() => language.value!)
 
-// ── Two rendering modes, picked from the module ────────────────────────
+// ── Three rendering modes, picked from the module ─────────────────────
 //
 // 1. **composer-driven matrix** (Korean): the module declares an
 //    `ISyllableComposer`, so we render an `initials × medials` table
-//    with composed syllables in each cell.
-// 2. **flat character grid** (Japanese hiragana / katakana, any course
-//    without a composer): we just render every character as a card,
-//    grouped by category. No fake syllable arithmetic.
+//    with composed syllables in each cell. Cells link to the syllable
+//    detail page.
+// 2. **static grid** (Japanese kana, any course with `tableGrid` in its
+//    config): we render the declared 2D layout — rows × columns of
+//    character ids — as an HTML table. Cells link to the practice
+//    page of each character. Empty cells (`null` in the data) render
+//    as a blank slot, no link.
+// 3. **flat character grid** (any course with neither): we just render
+//    every character as a card, grouped by category. Last resort.
 const composer = computed(() => module.value?.syllables ?? null)
-const hasMatrix = computed(() => composer.value !== null)
+const tableGrid = computed(() => module.value?.config.tableGrid ?? null)
+
+const hasComposerMatrix = computed(() => composer.value !== null)
+const hasStaticGrid = computed(() => tableGrid.value !== null && !hasComposerMatrix.value)
 
 // Matrix-mode helpers — each row is an "initial" (e.g. consonant), each
 // column is a "medial" (e.g. vowel). The composer's id arrays are
@@ -28,7 +36,7 @@ function buildSyllable(ci: number, vi: number) {
   return composer.value?.build(ci, vi) ?? { id: '', symbol: '', romanization: '' }
 }
 
-// Flat-grid helpers — group the module's characters by their category
+// Flat-grid fallback — group the module's characters by their category
 // declarations so the table page mirrors the same hierarchy as the
 // landing page.
 const characterGroups = computed(() => {
@@ -43,8 +51,9 @@ const characterGroups = computed(() => {
     .filter(g => g.chars.length > 0)
 })
 
-// Resolve a character display label (symbol + romanization) by id, used
-// to render the matrix headers without re-hardcoding the Korean lists.
+// Resolve a character symbol by id, used by both the composer matrix
+// (for header cells) and the static grid (for body cells). Returns
+// undefined if the id doesn't match any character in the module.
 function charById(id: string) {
   return module.value?.characters.find(c => c.id === id)
 }
@@ -65,7 +74,7 @@ function charById(id: string) {
     </div>
 
     <!-- ═══ MODE 1 — Composer-driven matrix (Korean Hangeul) ═══ -->
-    <div v-if="hasMatrix && composer" class="table-wrap">
+    <div v-if="hasComposerMatrix && composer" class="table-wrap">
       <table class="syllable-table">
         <thead>
           <tr>
@@ -104,8 +113,48 @@ function charById(id: string) {
       </table>
     </div>
 
-    <!-- ═══ MODE 2 — Flat character grid (Japanese kana, any course
-         without a composer) ═══ -->
+    <!-- ═══ MODE 2 — Static declarative grid (Japanese kana, any
+         course with `module.config.tableGrid` set) ═══ -->
+    <div v-else-if="hasStaticGrid && tableGrid" class="table-wrap">
+      <table class="static-grid">
+        <thead v-if="tableGrid.columnHeaders">
+          <tr>
+            <th class="static-grid__corner" />
+            <th
+              v-for="(col, ci) in tableGrid.columnHeaders"
+              :key="ci"
+              class="static-grid__col-header"
+            >{{ col }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="(row, ri) in tableGrid.rows"
+            :key="ri"
+          >
+            <th class="static-grid__row-header">{{ row.header ?? '' }}</th>
+            <td
+              v-for="(cellId, cellIdx) in row.cells"
+              :key="cellIdx"
+              class="static-grid__cell"
+              :class="{ 'static-grid__cell--empty': cellId === null }"
+            >
+              <NuxtLink
+                v-if="cellId && charById(cellId)"
+                :to="paths.practice(cellId)"
+                class="static-grid__cell-link"
+              >
+                <span class="static-grid__cell-sym">{{ charById(cellId)?.symbol }}</span>
+                <span class="static-grid__cell-rom">{{ charById(cellId)?.romanization }}</span>
+              </NuxtLink>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══ MODE 3 — Flat fallback (any course with neither composer
+         nor static grid) ═══ -->
     <div v-else class="char-groups">
       <section
         v-for="group in characterGroups"
@@ -263,6 +312,64 @@ function charById(id: string) {
 .cell__syl-link:hover {
   color: var(--color-primary);
   font-weight: 600;
+}
+
+/* ── Static declarative grid (kana gojuon and friends) ── */
+.static-grid {
+  border-collapse: separate;
+  border-spacing: var(--space-2);
+  width: 100%;
+  table-layout: fixed;
+}
+.static-grid__corner,
+.static-grid__col-header,
+.static-grid__row-header {
+  text-align: center;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: var(--space-2);
+  width: 48px;
+}
+.static-grid__row-header { text-align: right; padding-right: var(--space-3); }
+.static-grid__col-header { background: var(--color-bg-muted); border-radius: var(--radius-md); }
+
+.static-grid__cell { padding: 0; }
+.static-grid__cell--empty {
+  background: transparent;
+}
+.static-grid__cell-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--space-3) var(--space-2);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  color: inherit;
+  transition: all var(--transition-fast);
+  min-height: 64px;
+}
+.static-grid__cell-link:hover {
+  border-color: var(--color-course, var(--color-border-strong));
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+.static-grid__cell-sym {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1;
+}
+.static-grid__cell-rom {
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+  text-transform: lowercase;
 }
 
 /* ── Flat character grid (no composer) ── */

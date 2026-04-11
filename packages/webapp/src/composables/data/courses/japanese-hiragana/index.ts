@@ -47,6 +47,27 @@ export const japaneseHiragana: ICourseModule = {
     // online recognizer doesn't need it).
     nonDrawableTypes: [],
 
+    // Gojuon table layout: 5 vowel columns × 11 rows. The historical
+    // ordering preserves the empty cells in the y-row (no い/え), the
+    // w-row (no い/う/え) and the standalone ん row, so the grid
+    // visually matches every Japanese textbook.
+    tableGrid: {
+      columnHeaders: ['a', 'i', 'u', 'e', 'o'],
+      rows: [
+        { header: '∅', cells: ['a',  'i',   'u',   'e',  'o'  ] },
+        { header: 'k', cells: ['ka', 'ki',  'ku',  'ke', 'ko' ] },
+        { header: 's', cells: ['sa', 'shi', 'su',  'se', 'so' ] },
+        { header: 't', cells: ['ta', 'chi', 'tsu', 'te', 'to' ] },
+        { header: 'n', cells: ['na', 'ni',  'nu',  'ne', 'no' ] },
+        { header: 'h', cells: ['ha', 'hi',  'fu',  'he', 'ho' ] },
+        { header: 'm', cells: ['ma', 'mi',  'mu',  'me', 'mo' ] },
+        { header: 'y', cells: ['ya', null,  'yu',  null, 'yo' ] },
+        { header: 'r', cells: ['ra', 'ri',  'ru',  're', 'ro' ] },
+        { header: 'w', cells: ['wa', null,  null,  null, 'wo' ] },
+        { header: 'n', cells: ['n',  null,  null,  null, null ] },
+      ],
+    },
+
     // Landing-page sections. Hiragana has its own historical narrative
     // (Heian period, court women's literature, the Tale of Genji…)
     // even though it doesn't have a Hangeul-style cosmology or a

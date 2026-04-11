@@ -92,6 +92,31 @@ export type ToTrainingItemFn = (
   m: ICourseModule,
 ) => ITrainingItemBase | null
 
+// ── Static table-grid layout ──
+//
+// Some courses don't compose syllables algorithmically (Korean does
+// `consonant × vowel → 한글` via `ISyllableComposer`), but they still
+// have a canonical 2D layout for their characters: Japanese gojuon is
+// the obvious example — 5 vowel columns × 11 consonant rows, with a
+// few empty cells (やゆよ has no い/え, わをん is mostly empty…).
+//
+// A course can declare this layout statically here. The table page
+// will render it as an HTML grid. Cells reference character ids;
+// `null` means "no character at this intersection" (rendered as a
+// blank cell, no link).
+export interface ICourseTableGrid {
+  /** Optional header row labels (e.g. `['a','i','u','e','o']`).
+   *  Rendered as plain text — they're not character ids. */
+  columnHeaders?: string[]
+  rows: {
+    /** Optional header for this row (e.g. `'k'`, `'s'`). Plain text. */
+    header?: string
+    /** Character ids per column, `null` for an empty cell. Length must
+     *  match `columnHeaders.length` (or the longest row in the grid). */
+    cells: (string | null)[]
+  }[]
+}
+
 // ── Course config ──
 export interface ICourseConfig {
   heroImage: string
@@ -108,6 +133,12 @@ export interface ICourseConfig {
    *  variant of the training (because we don't have stroke data for them
    *  in their displayed form). Match is on `jamoType`. */
   nonDrawableTypes?: string[]
+
+  // Optional static grid layout for the /[lang]/[course]/table page.
+  // Used by courses that don't have a syllables composer but still have
+  // a canonical 2D arrangement of their characters (e.g. Japanese
+  // gojuon). Korean ignores this and uses the composer instead.
+  tableGrid?: ICourseTableGrid
 
   // Landing page sections (each is rendered iff its flag is true).
   /** "1443 — King Sejong" / Hunminjeongeum-style origin story block. */

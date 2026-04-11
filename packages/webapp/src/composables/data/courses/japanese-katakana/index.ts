@@ -36,6 +36,26 @@ export const japaneseKatakana: ICourseModule = {
     toTrainingItem: undefined,
     nonDrawableTypes: [],
 
+    // Same gojuon layout as hiragana — same ids, same row structure,
+    // same empty cells. Only the rendered glyphs differ since
+    // characters.ts uses katakana symbols.
+    tableGrid: {
+      columnHeaders: ['a', 'i', 'u', 'e', 'o'],
+      rows: [
+        { header: '∅', cells: ['a',  'i',   'u',   'e',  'o'  ] },
+        { header: 'k', cells: ['ka', 'ki',  'ku',  'ke', 'ko' ] },
+        { header: 's', cells: ['sa', 'shi', 'su',  'se', 'so' ] },
+        { header: 't', cells: ['ta', 'chi', 'tsu', 'te', 'to' ] },
+        { header: 'n', cells: ['na', 'ni',  'nu',  'ne', 'no' ] },
+        { header: 'h', cells: ['ha', 'hi',  'fu',  'he', 'ho' ] },
+        { header: 'm', cells: ['ma', 'mi',  'mu',  'me', 'mo' ] },
+        { header: 'y', cells: ['ya', null,  'yu',  null, 'yo' ] },
+        { header: 'r', cells: ['ra', 'ri',  'ru',  're', 'ro' ] },
+        { header: 'w', cells: ['wa', null,  null,  null, 'wo' ] },
+        { header: 'n', cells: ['n',  null,  null,  null, null ] },
+      ],
+    },
+
     // Katakana has its own historical narrative — invented in the 9th
     // century by Buddhist monks as a shorthand for annotating Chinese
     // texts. Each katakana is a fragment of a kanji.
