@@ -71,6 +71,9 @@
           "syllablesDesc": "How characters combine",
           "tableTitle": "Full Table",
           "tableDesc": "All 40 characters at a glance",
+          "introEyebrow": "1443 — King Sejong the Great",
+          "introQuoteSource": "훈민정음",
+          "introQuoteSourceLatin": "Hunminjeongeum, 1446",
           "introP1": "Hangeul is the Korean writing system, created in 1443 by King Sejong the Great and a team of scholars. Before Hangeul, Koreans used Classical Chinese characters (Hanja), which took years to master and were accessible only to the elite.",
           "introP2": "King Sejong believed that every person — regardless of their social class — deserved to be able to read and write. He designed Hangeul to be intuitive and easy to learn. Legend says \"a wise man can learn it in a morning, a fool can learn it in ten days.\"",
           "introP3": "The system was published in 1446 as the Hunminjeongeum (\"The Correct Sounds for the Instruction of the People\"). Today, Hangeul is celebrated every year on October 9th (Hangeul Day) and is widely regarded as one of the most logical and scientifically designed writing systems in the world.",
@@ -136,7 +139,13 @@
         "backToGrid": "Back to Hiragana",
         "section": {
           "tableTitle": "Full Table",
-          "tableDesc": "All 46 hiragana at a glance"
+          "tableDesc": "All 46 hiragana at a glance",
+          "introEyebrow": "9th century — Heian period",
+          "introQuoteSource": "源氏物語",
+          "introQuoteSourceLatin": "The Tale of Genji, ca. 1008",
+          "introP1": "Hiragana is the cursive Japanese phonetic script, born in the Heian period (794–1185). Each kana evolved as a stylised, flowing version of a Chinese character used purely for its sound — for instance あ comes from 安, か from 加, さ from 左. Over a couple of centuries the brush-written shapes drifted further and further from their kanji origins until they became their own independent system of 46 sounds.",
+          "introP2": "Hiragana was originally called onnade (\"women's hand\") because Heian-period women — barred from the formal Chinese-language education reserved for men — used it to write poetry, diaries and the world's first novels. Murasaki Shikibu's Tale of Genji and Sei Shōnagon's Pillow Book were written almost entirely in hiragana, and they're considered foundational works of world literature.",
+          "introP3": "Today hiragana is the first script every Japanese child learns. It's used to write native Japanese words that have no kanji form, grammatical particles and inflections, furigana reading hints above kanji, and any text aimed at young readers or learners. If you can read hiragana, you can read aloud anything written in Japanese — even if you don't know the kanji."
         },
         "practice": {
           "title": "Practice",
@@ -172,7 +181,13 @@
         "backToGrid": "Back to Katakana",
         "section": {
           "tableTitle": "Full Table",
-          "tableDesc": "All 46 katakana at a glance"
+          "tableDesc": "All 46 katakana at a glance",
+          "introEyebrow": "9th century — Buddhist monks",
+          "introQuoteSource": "片仮名",
+          "introQuoteSourceLatin": "Katakana — \"fragmentary kana\"",
+          "introP1": "Katakana was developed in the Heian period by Buddhist monks who needed a fast, compact way to annotate Chinese sutras with Japanese pronunciation guides. Rather than reusing the cursive women's hiragana, they took a single radical out of each Chinese character and used it as a phonetic shorthand — for example イ is the left half of 伊, ロ comes from 呂, ヌ is the bottom of 奴.",
+          "introP2": "The name katakana literally means \"fragmentary kana\" (片 kata = piece, 仮名 kana = borrowed name), reflecting the script's origin as kanji fragments. The angular, geometric strokes are a direct legacy of those rapid brush annotations — every katakana can be drawn in just a few decisive lines, in stark contrast to the flowing hiragana.",
+          "introP3": "In modern Japanese, katakana is reserved for: foreign loanwords (コーヒー \"coffee\", テレビ \"television\"), foreign personal and place names, the names of plants and animals in scientific contexts, onomatopoeia (ワンワン \"woof woof\"), and emphasis — the same role italics play in English. Knowing katakana is essential for navigating menus, packaging and tech vocabulary in Japan."
         },
         "practice": {
           "title": "Practice",

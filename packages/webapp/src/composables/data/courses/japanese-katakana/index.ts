@@ -36,7 +36,10 @@ export const japaneseKatakana: ICourseModule = {
     toTrainingItem: undefined,
     nonDrawableTypes: [],
 
-    hasOriginStory: false,
+    // Katakana has its own historical narrative — invented in the 9th
+    // century by Buddhist monks as a shorthand for annotating Chinese
+    // texts. Each katakana is a fragment of a kanji.
+    hasOriginStory: true,
     hasCosmology: false,
     hasSilentInitialRule: false,
     hasSyllableComposition: false,

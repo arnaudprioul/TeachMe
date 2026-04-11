@@ -47,9 +47,11 @@ export const japaneseHiragana: ICourseModule = {
     // online recognizer doesn't need it).
     nonDrawableTypes: [],
 
-    // Landing-page sections: hiragana doesn't have a King Sejong /
-    // cosmology / silent-initial story, just a flat character list.
-    hasOriginStory: false,
+    // Landing-page sections. Hiragana has its own historical narrative
+    // (Heian period, court women's literature, the Tale of Genji…)
+    // even though it doesn't have a Hangeul-style cosmology or a
+    // silent-ㅇ rule.
+    hasOriginStory: true,
     hasCosmology: false,
     hasSilentInitialRule: false,
     hasSyllableComposition: false,

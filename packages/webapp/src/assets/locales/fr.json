@@ -71,6 +71,9 @@
           "syllablesDesc": "Comment les caractères se combinent",
           "tableTitle": "Tableau complet",
           "tableDesc": "Les 40 caractères d'un coup d'œil",
+          "introEyebrow": "1443 — Le roi Sejong le Grand",
+          "introQuoteSource": "훈민정음",
+          "introQuoteSourceLatin": "Hunminjeongeum, 1446",
           "introP1": "Le Hangeul est le système d'écriture coréen, créé en 1443 par le roi Sejong le Grand et une équipe de savants. Avant le Hangeul, les Coréens utilisaient les caractères chinois classiques (Hanja), qui nécessitaient des années d'apprentissage et n'étaient accessibles qu'à l'élite.",
           "introP2": "Le roi Sejong croyait que chaque personne — quelle que soit sa classe sociale — méritait de pouvoir lire et écrire. Il a conçu le Hangeul pour être intuitif et facile à apprendre. La légende dit qu'« un sage peut l'apprendre en une matinée, un sot en dix jours ».",
           "introP3": "Le système fut publié en 1446 sous le nom de Hunminjeongeum (« Les Sons Corrects pour l'Instruction du Peuple »). Aujourd'hui, le Hangeul est célébré chaque année le 9 octobre (Jour du Hangeul) et est considéré comme l'un des systèmes d'écriture les plus logiques et scientifiquement conçus au monde.",
@@ -136,7 +139,13 @@
         "backToGrid": "Retour aux Hiragana",
         "section": {
           "tableTitle": "Tableau complet",
-          "tableDesc": "Les 46 hiragana d'un coup d'œil"
+          "tableDesc": "Les 46 hiragana d'un coup d'œil",
+          "introEyebrow": "IXᵉ siècle — Époque de Heian",
+          "introQuoteSource": "源氏物語",
+          "introQuoteSourceLatin": "Le Dit du Genji, vers 1008",
+          "introP1": "Le hiragana est l'écriture phonétique japonaise cursive, née à l'époque de Heian (794–1185). Chaque kana est issu de la stylisation à la pinceau d'un caractère chinois utilisé uniquement pour son son — par exemple あ vient de 安, か de 加, さ de 左. Au fil des siècles, les formes manuscrites se sont éloignées de leurs origines kanji jusqu'à devenir un système indépendant de 46 sons.",
+          "introP2": "Le hiragana était à l'origine appelé onnade (« main de femme ») parce que les femmes de la cour de Heian — exclues de l'éducation formelle en chinois réservée aux hommes — l'utilisaient pour écrire poésies, journaux et les premiers romans au monde. Le Dit du Genji de Murasaki Shikibu et les Notes de chevet de Sei Shōnagon ont été écrits presque entièrement en hiragana, et sont considérés comme des œuvres fondatrices de la littérature mondiale.",
+          "introP3": "Aujourd'hui le hiragana est le premier alphabet que tout enfant japonais apprend. Il sert à écrire les mots japonais natifs sans forme kanji, les particules grammaticales, les terminaisons, les furigana qui guident la lecture des kanji, et tout texte destiné aux jeunes lecteurs ou aux apprenants. Si tu sais lire le hiragana, tu peux prononcer à voix haute n'importe quel texte japonais — même sans connaître les kanji."
         },
         "practice": {
           "title": "Pratique",
@@ -172,7 +181,13 @@
         "backToGrid": "Retour aux Katakana",
         "section": {
           "tableTitle": "Tableau complet",
-          "tableDesc": "Les 46 katakana d'un coup d'œil"
+          "tableDesc": "Les 46 katakana d'un coup d'œil",
+          "introEyebrow": "IXᵉ siècle — Moines bouddhistes",
+          "introQuoteSource": "片仮名",
+          "introQuoteSourceLatin": "Katakana — « kana fragmentaires »",
+          "introP1": "Le katakana a été développé à l'époque de Heian par des moines bouddhistes qui avaient besoin d'une façon rapide et compacte d'annoter les sutras chinois avec des indications de prononciation japonaise. Plutôt que de réutiliser le hiragana cursif des femmes de cour, ils ont prélevé un seul radical de chaque caractère chinois pour s'en servir comme raccourci phonétique — par exemple イ est la moitié gauche de 伊, ロ vient de 呂, ヌ est le bas de 奴.",
+          "introP2": "Le nom katakana signifie littéralement « kana fragmentaires » (片 kata = morceau, 仮名 kana = nom emprunté), reflétant l'origine du système comme fragments de kanji. Les traits anguleux et géométriques sont l'héritage direct de ces annotations rapides à la pinceau — chaque katakana se trace en quelques lignes décisives, en contraste total avec la fluidité du hiragana.",
+          "introP3": "En japonais moderne, le katakana est réservé aux mots étrangers d'emprunt (コーヒー « café », テレビ « télévision »), aux noms propres et de lieux étrangers, aux noms scientifiques d'animaux et de plantes, aux onomatopées (ワンワン « ouaf-ouaf »), et à l'emphase — le même rôle que les italiques en français. Connaître le katakana est essentiel pour naviguer dans les menus, les emballages et le vocabulaire tech au Japon."
         },
         "practice": {
           "title": "Pratique",
