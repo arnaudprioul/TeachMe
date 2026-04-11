@@ -20,42 +20,42 @@ const difficulties: { value: Difficulty; label: string; desc: string }[] = [
 ]
 
 const activeDifficultyDesc = computed(() => {
-  const d = difficulties.find(d => d.value === training.config.value.difficulty)
+  const d = difficulties.find(d => d.value === training.config.difficulty)
   return d ? t(d.desc) : ''
 })
 
 // ── Question types (both can be active) ──
 const recognitionActive = computed(() =>
-  training.config.value.questionType === 'recognition' || training.config.value.questionType === 'both'
+  training.config.questionType === 'recognition' || training.config.questionType === 'both'
 )
 const writingActive = computed(() =>
-  training.config.value.questionType === 'writing' || training.config.value.questionType === 'both'
+  training.config.questionType === 'writing' || training.config.questionType === 'both'
 )
 
 function toggleQuestionType(type: 'recognition' | 'writing') {
-  const current = training.config.value.questionType
+  const current = training.config.questionType
   if (type === 'recognition') {
-    if (current === 'both') training.config.value.questionType = 'writing'
+    if (current === 'both') training.config.questionType = 'writing'
     else if (current === 'recognition') return // at least one must be active
-    else training.config.value.questionType = 'both'
+    else training.config.questionType = 'both'
   } else {
-    if (current === 'both') training.config.value.questionType = 'recognition'
+    if (current === 'both') training.config.questionType = 'recognition'
     else if (current === 'writing') return // at least one must be active
-    else training.config.value.questionType = 'both'
+    else training.config.questionType = 'both'
   }
 }
 
 // ── Question limit ──
 function increment() {
-  const max = training.poolCount.value
-  if (training.config.value.questionLimit < max) {
-    training.config.value.questionLimit = Math.min(training.config.value.questionLimit + 5, max)
+  const max = training.poolCount
+  if (training.config.questionLimit < max) {
+    training.config.questionLimit = Math.min(training.config.questionLimit + 5, max)
   }
 }
 
 function decrement() {
-  if (training.config.value.questionLimit > 5) {
-    training.config.value.questionLimit = Math.max(training.config.value.questionLimit - 5, 5)
+  if (training.config.questionLimit > 5) {
+    training.config.questionLimit = Math.max(training.config.questionLimit - 5, 5)
   }
 }
 
@@ -86,9 +86,9 @@ function startTraining() {
             v-for="d in difficulties"
             :key="d.value"
             class="toggle-btn"
-            :class="{ 'toggle-btn--active': training.config.value.difficulty === d.value }"
+            :class="{ 'toggle-btn--active': training.config.difficulty === d.value }"
             data-cy="difficulty-toggle"
-            @click="training.config.value.difficulty = d.value"
+            @click="training.config.difficulty = d.value"
           >
             {{ t(d.label) }}
           </button>
@@ -129,7 +129,7 @@ function startTraining() {
             <p class="settings-desc">{{ t('training.autoSoundDesc') }}</p>
           </div>
           <label class="switch" data-cy="auto-sound-toggle">
-            <input type="checkbox" v-model="training.config.value.autoSound" />
+            <input type="checkbox" v-model="training.config.autoSound" />
             <span class="switch__track"></span>
           </label>
         </div>
@@ -141,17 +141,17 @@ function startTraining() {
         <div class="limit-row">
           <button
             class="limit-btn"
-            :disabled="training.config.value.questionLimit <= 5"
+            :disabled="training.config.questionLimit <= 5"
             data-cy="limit-decrement"
             @click="decrement"
             aria-label="Decrease question limit"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>
-          <span class="limit-value" data-cy="limit-value">{{ training.config.value.questionLimit }}</span>
+          <span class="limit-value" data-cy="limit-value">{{ training.config.questionLimit }}</span>
           <button
             class="limit-btn"
-            :disabled="training.config.value.questionLimit >= training.poolCount"
+            :disabled="training.config.questionLimit >= training.poolCount"
             data-cy="limit-increment"
             @click="increment"
             aria-label="Increase question limit"
@@ -160,7 +160,7 @@ function startTraining() {
           </button>
         </div>
         <p class="settings-desc">
-          {{ t('training.questionsAvailable', { count: training.config.value.questionLimit, total: training.poolCount }) }}
+          {{ t('training.questionsAvailable', { count: training.config.questionLimit, total: training.poolCount }) }}
         </p>
       </section>
 

@@ -96,7 +96,7 @@ function syllable(ci: number, vi: number): string {
               </NuxtLink>
             </th>
             <td v-for="(v, vi) in vowels" :key="vi" class="cell cell--syl">
-              <NuxtLink :to="`/korean/hangeul/practice/${c.id}`" class="cell__syl-link">
+              <NuxtLink :to="`/korean/hangeul/syllable/${c.id}-${v.id}`" class="cell__syl-link">
                 {{ syllable(ci, vi) }}
               </NuxtLink>
             </td>

@@ -11,11 +11,11 @@ const course = getBySlug('korean')!
 
 // Redirect if no session
 onMounted(() => {
-  if (!training.session.value) navigateTo('/korean/hangeul/training')
+  if (!training.session) navigateTo('/korean/hangeul/training')
 })
 
 const emoji = computed(() => {
-  const pct = training.score.value.percentage
+  const pct = training.score.percentage
   if (pct === 100) return '🎉'
   if (pct >= 80) return '🔥'
   if (pct >= 50) return '👏'
@@ -25,7 +25,7 @@ const emoji = computed(() => {
 
 <template>
   <div class="results page-container" :style="{ '--color-course': course.color }">
-    <template v-if="training.session.value">
+    <template v-if="training.session">
       <div class="results__hero">
         <span class="results__emoji">{{ emoji }}</span>
         <h1>{{ t('training.trainingComplete') }}</h1>
@@ -33,16 +33,16 @@ const emoji = computed(() => {
 
       <div class="results__scores">
         <div class="score-card">
-          <span class="score-card__value">{{ training.score.value.correct }}/{{ training.score.value.total }}</span>
+          <span class="score-card__value">{{ training.score.correct }}/{{ training.score.total }}</span>
           <span class="score-card__label">{{ t('training.yourScore') }}</span>
           <div class="score-card__bar">
-            <div class="score-card__fill" :style="{ width: `${training.score.value.percentage}%` }" />
+            <div class="score-card__fill" :style="{ width: `${training.score.percentage}%` }" />
           </div>
-          <span class="score-card__pct">{{ training.score.value.percentage }}%</span>
+          <span class="score-card__pct">{{ training.score.percentage }}%</span>
         </div>
 
         <div class="score-card score-card--streak">
-          <span class="score-card__value">{{ training.bestStreak.value }}</span>
+          <span class="score-card__value">{{ training.bestStreak }}</span>
           <span class="score-card__label">{{ t('training.bestStreak') }}</span>
         </div>
       </div>
@@ -50,14 +50,14 @@ const emoji = computed(() => {
       <!-- Question review -->
       <div class="results__review">
         <div
-          v-for="(result, i) in training.session.value.results"
+          v-for="(result, i) in training.session.results"
           :key="i"
           class="review-item"
           :class="result.correct ? 'review-item--correct' : 'review-item--wrong'"
         >
           <span class="review-item__icon">{{ result.correct ? '✓' : '✗' }}</span>
-          <span class="review-item__char">{{ training.session.value.questions[i]?.char.symbol }}</span>
-          <span class="review-item__rom">{{ training.session.value.questions[i]?.char.romanization }}</span>
+          <span class="review-item__char">{{ training.session.questions[i]?.item.symbol }}</span>
+          <span class="review-item__rom">{{ training.session.questions[i]?.item.romanization }}</span>
         </div>
       </div>
 

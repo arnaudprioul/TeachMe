@@ -4,6 +4,7 @@ import { useHangeul } from '~/composables/useHangeul'
 import { useHangeulAudio } from '~/composables/useHangeulAudio'
 import { useCourses } from '~/composables/useCourses'
 import { HANGEUL_PHONETICS } from '~/composables/data/hangeulPhonetics'
+import { getSpeechText } from '~/composables/data/hangeulSpeech'
 definePageMeta({ layout: 'default', middleware: 'auth' })
 
 const { t, locale } = useI18n()
@@ -43,7 +44,7 @@ const drawMode = ref(false)
           <span>{{ localizedName }}</span>
           <span class="draw-header__rom">{{ char.romanization }}</span>
         </div>
-        <button v-if="isSupported" class="draw-sound" @click="speak(char.symbol)" :class="{ 'draw-sound--active': isSpeaking }">
+        <button v-if="isSupported" class="draw-sound" @click="speak(getSpeechText(char.id, char.symbol))" :class="{ 'draw-sound--active': isSpeaking }">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
         </button>
       </div>
@@ -52,47 +53,67 @@ const drawMode = ref(false)
 
     <!-- ══════ NORMAL VIEW ══════ -->
     <template v-if="!drawMode">
-      <div class="page-container">
+      <div class="page-container p__inner">
         <Breadcrumb :items="[
           { label: t('nav.dashboard'), to: '/dashboard' },
           { label: t('courses.korean'), to: '/korean' },
           { label: t('korean.hangeul'), to: '/korean/hangeul' },
+          { label: t('korean.hangeulSection.tableTitle'), to: '/korean/hangeul/table' },
           { label: char?.symbol ?? '...' },
         ]" />
-      </div>
 
-      <template v-if="char">
-        <!-- ── Hero: character + stroke order unified ── -->
-        <div class="char-hero">
-          <div class="char-hero__display">
-            <StrokeAnimation :char-id="charId" />
-          </div>
-
-          <div class="char-hero__info">
-            <h1 class="char-hero__name">{{ localizedName }}</h1>
-            <div class="char-hero__rom">{{ char.romanization }}</div>
-            <div class="char-hero__meta">
-              <span>{{ t(`korean.charType_${char.type}`) }}</span>
-              <span class="meta-dot">·</span>
-              <span>{{ t(`korean.charSubtype_${char.subtype}`) }}</span>
-              <span class="meta-dot">·</span>
-              <span>{{ t('korean.strokeCount', { n: char.strokeCount }) }}</span>
+        <template v-if="char">
+          <!-- ── Quick nav prev/next at top ── -->
+          <div class="quick-nav">
+            <NuxtLink to="/korean/hangeul/table" class="quick-nav__back">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              {{ t('korean.backToGrid') }}
+            </NuxtLink>
+            <div class="quick-nav__arrows">
+              <NuxtLink v-if="prev" :to="`/korean/hangeul/practice/${prev.id}`" class="quick-nav__arrow" :aria-label="t('korean.prevChar')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                <span class="quick-nav__arrow-char">{{ prev.symbol }}</span>
+              </NuxtLink>
+              <span v-else class="quick-nav__placeholder" />
+              <NuxtLink v-if="next" :to="`/korean/hangeul/practice/${next.id}`" class="quick-nav__arrow" :aria-label="t('korean.nextChar')">
+                <span class="quick-nav__arrow-char">{{ next.symbol }}</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+              </NuxtLink>
+              <span v-else class="quick-nav__placeholder" />
             </div>
           </div>
 
-          <div class="char-hero__actions">
-            <button v-if="isSupported" class="act" @click="speak(char.symbol)" :class="{ 'act--active': isSpeaking }" :aria-label="t('korean.practice.playSound')">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-              <span>{{ t('korean.practice.listen') }}</span>
-            </button>
-            <button class="act act--primary" @click="drawMode = true" :aria-label="t('korean.practice.write')">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-              <span>{{ t('korean.practice.write') }}</span>
-            </button>
-          </div>
-        </div>
+          <!-- ── Hero: character + stroke order ── -->
+          <div class="char-hero">
+            <div class="char-hero__display">
+              <StrokeAnimation :char-id="charId" />
+            </div>
 
-        <div class="page-container sections">
+            <div class="char-hero__info">
+              <h1 class="char-hero__name">{{ localizedName }}</h1>
+              <div class="char-hero__rom">{{ char.romanization }}</div>
+              <div class="char-hero__meta">
+                <span>{{ t(`korean.charType_${char.type}`) }}</span>
+                <span class="meta-dot">·</span>
+                <span>{{ t(`korean.charSubtype_${char.subtype}`) }}</span>
+                <span class="meta-dot">·</span>
+                <span>{{ t('korean.strokeCount', { n: char.strokeCount }) }}</span>
+              </div>
+            </div>
+
+            <div class="char-hero__actions">
+              <button v-if="isSupported" class="act" @click="speak(getSpeechText(char.id, char.symbol))" :class="{ 'act--active': isSpeaking }" :aria-label="t('korean.practice.playSound')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                <span>{{ t('korean.practice.listen') }}</span>
+              </button>
+              <button class="act act--primary" @click="drawMode = true" :aria-label="t('korean.practice.write')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                <span>{{ t('korean.practice.write') }}</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="sections">
           <!-- ── Phonetics ── -->
           <section v-if="phonetic" class="card">
             <h2 class="card__title">{{ t('korean.practice.phonetics') }}</h2>
@@ -148,7 +169,7 @@ const drawMode = ref(false)
             </div>
           </section>
 
-          <!-- ── Prev / Next ── -->
+          <!-- ── Prev / Next big buttons ── -->
           <nav class="char-nav">
             <NuxtLink v-if="prev" :to="`/korean/hangeul/practice/${prev.id}`" class="nav-link">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
@@ -163,30 +184,65 @@ const drawMode = ref(false)
             </NuxtLink>
             <span v-else />
           </nav>
-        </div>
-      </template>
+          </div>
+        </template>
 
-      <template v-else>
-        <div class="page-container">
+        <template v-else>
           <p style="color: var(--color-text-muted)">{{ t('common.error') }}</p>
           <NuxtLink to="/korean/hangeul/table" class="btn btn--primary">{{ t('korean.backToGrid') }}</NuxtLink>
-        </div>
-      </template>
+        </template>
+      </div>
     </template>
   </div>
 </template>
 
 <style scoped>
 .p { display: flex; flex-direction: column; }
-.sections { display: flex; flex-direction: column; gap: var(--space-5); padding-bottom: var(--space-10); }
+.p__inner { display: flex; flex-direction: column; gap: var(--space-5); }
+.sections { display: flex; flex-direction: column; gap: var(--space-5); }
 
-/* ══════════ HERO — character + strokes unified ══════════ */
+/* ══════════ Quick nav (back + arrows) ══════════ */
+.quick-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.quick-nav__back {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface); color: var(--color-text-secondary);
+  font-size: var(--text-xs); font-weight: 500; text-decoration: none;
+  transition: all var(--transition-fast);
+}
+.quick-nav__back:hover { border-color: var(--color-border-strong); color: var(--color-text); }
+
+.quick-nav__arrows {
+  display: flex; align-items: center; gap: var(--space-2);
+}
+
+.quick-nav__arrow {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface); color: var(--color-text-secondary);
+  font-size: var(--text-sm); text-decoration: none;
+  transition: all var(--transition-fast);
+}
+.quick-nav__arrow:hover { border-color: var(--color-course); color: var(--color-course); }
+.quick-nav__arrow-char { font-family: var(--font-cjk-kr); font-weight: 600; }
+.quick-nav__placeholder { width: 56px; }
+
+/* ══════════ HERO — character + strokes ══════════ */
 .char-hero {
   display: flex; flex-direction: column; align-items: center;
   text-align: center; gap: var(--space-4);
-  padding: var(--space-8) var(--space-6) var(--space-6);
+  padding: var(--space-8) var(--space-6);
   background: var(--color-bg-surface);
-  border-bottom: 1px solid var(--color-border);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
 }
 
 .char-hero__display {

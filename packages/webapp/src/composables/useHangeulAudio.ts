@@ -8,8 +8,28 @@ export function useHangeulAudio() {
   function loadVoices() {
     if (typeof window === 'undefined' || !window.speechSynthesis) return
     const voices = window.speechSynthesis.getVoices()
-    koreanVoice = voices.find(v => v.lang.startsWith('ko')) ?? null
-    isSupported.value = koreanVoice !== null || voices.length > 0
+    const koreanVoices = voices.filter(v => v.lang.toLowerCase().startsWith('ko'))
+
+    // Prefer high-quality named voices in this order
+    const preferred = [
+      'Yuna',          // macOS / iOS native
+      'Heami',         // Windows
+      'Google 한국의', // Chrome
+      'Microsoft Heami',
+      'Microsoft SunHi',
+    ]
+
+    for (const name of preferred) {
+      const v = koreanVoices.find(x => x.name === name || x.name.includes(name))
+      if (v) { koreanVoice = v; break }
+    }
+
+    // Fallback: any Korean voice that's not "remote/default"
+    if (!koreanVoice) {
+      koreanVoice = koreanVoices.find(v => v.localService) ?? koreanVoices[0] ?? null
+    }
+
+    isSupported.value = koreanVoice !== null
   }
 
   onMounted(() => {

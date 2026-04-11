@@ -15,8 +15,8 @@ const { config, poolCount } = useTrainingStore()
 const { basicConsonants, doubleConsonants, basicVowels, compoundVowels } = useHangeul()
 
 const mode = computed({
-  get: () => config.value.mode,
-  set: (v: TrainingMode) => { config.value.mode = v },
+  get: () => config.mode,
+  set: (v: TrainingMode) => { config.mode = v },
 })
 
 const typeCounts = computed(() => ({
@@ -173,9 +173,7 @@ const typeCounts = computed(() => ({
 .tc {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
-  max-width: 640px;
-  margin: 0 auto;
+  gap: var(--space-5);
 }
 
 .tc__title {

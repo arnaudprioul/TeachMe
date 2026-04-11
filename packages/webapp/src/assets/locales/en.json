@@ -46,6 +46,30 @@
     "italian": "Italian",
     "italianDesc": "Grammar, vocabulary & culture"
   },
+  "langProfile": {
+    "korean": {
+      "heroTitle": "Discover Korean",
+      "heroSub": "Join over 80 million speakers worldwide and explore one of the most fascinating languages and cultures in Asia.",
+      "musicTitle": "K-Pop & Music",
+      "musicDesc": "From BTS to BLACKPINK, Korean music has taken the world by storm. Learning Korean lets you understand the lyrics and connect with the culture.",
+      "foodTitle": "Gastronomy",
+      "foodDesc": "Kimchi, bibimbap, Korean BBQ — Korean cuisine is rich, diverse and increasingly popular worldwide.",
+      "dramaTitle": "K-Dramas & Cinema",
+      "dramaDesc": "From Squid Game to Parasite, Korean entertainment captivates global audiences. Watch without subtitles!",
+      "historyTitle": "History & Heritage",
+      "historyDesc": "5,000 years of history, ancient palaces, and a unique writing system designed for the people.",
+      "factSpeakers": "Speakers",
+      "factAlphabet": "Characters",
+      "factRanking": "World ranking",
+      "factCountry": "Countries",
+      "whyLearnTitle": "Why learn Korean?",
+      "whyLearnDesc": "Korean is one of the fastest-growing languages to learn worldwide, driven by the global wave of Korean culture.",
+      "coursesTitle": "Available courses",
+      "coursesDesc": "Start your journey with our interactive courses.",
+      "comingSoonTitle": "Coming soon",
+      "comingSoonDesc": "More courses and content are being prepared."
+    }
+  },
   "korean": {
     "hubTitle": "Korean",
     "hubSubtitle": "Master the Korean language step by step.",
@@ -219,6 +243,41 @@
   "common": {
     "loading": "Loading…", "error": "An error occurred",
     "back": "Back", "next": "Next", "soon": "Soon", "available": "Available",
-    "startLearning": "Start learning"
+    "startLearning": "Start learning", "save": "Save", "cancel": "Cancel"
+  },
+  "profile": {
+    "title": "Profile",
+    "memberSince": "Member since {date}",
+    "editProfile": "Edit profile",
+    "stats": "Stats",
+    "languages": "My languages",
+    "noLanguages": "You haven't started any course yet.",
+    "favorites": "Favorites",
+    "noFavorites": "No favorites yet. Star characters to add them here.",
+    "settings": "Settings",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "themeSystem": "System",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "language": "Display language",
+    "preferences": "Preferences",
+    "soundEnabled": "Sound effects",
+    "soundEnabledDesc": "Play sounds during exercises",
+    "dailyReminder": "Daily reminder",
+    "dailyReminderDesc": "Get reminded to practice every day",
+    "account": "Account",
+    "username": "Username",
+    "email": "Email",
+    "changePassword": "Change password",
+    "deleteAccount": "Delete account",
+    "deleteAccountWarning": "This action is permanent and cannot be undone.",
+    "totalSessions": "Sessions",
+    "totalCorrect": "Correct answers",
+    "bestStreak": "Best streak",
+    "accuracy": "Accuracy",
+    "tabOverview": "Overview",
+    "tabFavorites": "Favorites",
+    "tabSettings": "Settings"
   }
 }

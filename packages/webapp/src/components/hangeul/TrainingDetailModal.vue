@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { useHangeulAudio } from '~/composables/useHangeulAudio'
+import { getSpeechText } from '~/composables/data/hangeulSpeech'
 import type { IHangeulChar } from '~/composables/useHangeul'
 
 const props = defineProps<{
@@ -33,7 +34,7 @@ const localizedName = computed(() =>
 
         <!-- Actions -->
         <div class="modal__actions">
-          <button v-if="isSupported" class="modal__btn" @click="speak(char.symbol)">
+          <button v-if="isSupported" class="modal__btn" @click="speak(getSpeechText(char.id, char.symbol))">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
           </button>
           <NuxtLink :to="`/korean/hangeul/practice/${char.id}`" class="modal__btn">

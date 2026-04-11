@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { useTrainingStore } from '~/stores/training.store'
+import { getSpeechText } from '~/composables/data/hangeulSpeech'
 import { useHangeulAudio } from '~/composables/useHangeulAudio'
 import { useCourses } from '~/composables/useCourses'
 
@@ -14,7 +15,7 @@ const course = getBySlug('korean')!
 
 // Redirect if no session
 onMounted(() => {
-  if (!training.session.value) navigateTo('/korean/hangeul/training')
+  if (!training.session) navigateTo('/korean/hangeul/training')
 })
 
 // ── Local state ──
@@ -24,9 +25,9 @@ const textInput = ref('')
 const showFeedback = ref(false)
 
 // ── Derived ──
-const question = computed(() => training.currentQuestion.value)
-const progress = computed(() => training.progress.value)
-const difficulty = computed(() => training.session.value?.config.difficulty ?? 'easy')
+const question = computed(() => training.currentQuestion)
+const progress = computed(() => training.progress)
+const difficulty = computed(() => training.session?.config.difficulty ?? 'easy')
 const hardInput = computed(() => {
   if (!question.value) return 'keyboard'
   return question.value.type === 'recognition' ? 'keyboard' : 'drawing'
@@ -36,7 +37,9 @@ const isHard = computed(() => difficulty.value === 'hard')
 
 const localizedType = computed(() => {
   if (!question.value) return ''
-  return t(`korean.charType_${question.value.char.type}`)
+  const item = question.value.item
+  if (item.type === 'syllable') return 'Syllable'
+  return t(`korean.charType_${item.jamoType}`)
 })
 
 // Auto-play sound on new question
@@ -47,8 +50,8 @@ watch(question, (q) => {
   textInput.value = ''
   showFeedback.value = false
 
-  if (training.session.value?.config.autoSound && q.type === 'recognition') {
-    nextTick(() => speak(q.char.symbol))
+  if (training.session?.config.autoSound && q.type === 'recognition') {
+    nextTick(() => speak(q.item.type === 'jamo' ? getSpeechText(q.item.id, q.item.symbol) : q.item.symbol))
   }
 })
 
@@ -90,16 +93,16 @@ function verifyDrawing() {
   if (answered.value !== null) return
   // For drawing, we count it as a self-graded correct attempt
   // The user can override with edit result buttons
-  if (!training.session.value || !question.value) return
-  training.session.value.results.push({
-    charId: question.value.char.id,
+  if (!training.session || !question.value) return
+  training.session.results.push({
+    itemId: question.value.item.id,
     correct: true,
     type: question.value.type,
     answeredAt: Date.now(),
   })
-  training.streak.value++
-  if (training.streak.value > training.bestStreak.value) {
-    training.bestStreak.value = training.streak.value
+  training.streak++
+  if (training.streak > training.bestStreak) {
+    training.bestStreak = training.streak
   }
   answered.value = true
   showFeedback.value = true
@@ -114,7 +117,7 @@ function overrideResult(correct: boolean) {
 // ── Next question ──
 function goNext() {
   training.next()
-  if (training.isFinished.value) {
+  if (training.isFinished) {
     navigateTo('/korean/hangeul/training/results')
   }
 }
@@ -127,13 +130,14 @@ function closeTraining() {
 // ── Play sound ──
 function playSound() {
   if (!question.value) return
-  speak(question.value.char.symbol)
+  const item = question.value.item
+  speak(item.type === 'jamo' ? getSpeechText(item.id, item.symbol) : item.symbol)
 }
 
 // ── Option class helpers ──
 function optionClass(optId: string) {
   if (answered.value === null) return 'opt'
-  const isCorrectOption = optId === question.value?.char.id
+  const isCorrectOption = optId === question.value?.item.id
   const isSelected = optId === selectedId.value
   if (isCorrectOption) return 'opt opt--correct'
   if (isSelected && !isCorrectOption) return 'opt opt--wrong'
@@ -146,7 +150,7 @@ const canvasRef = ref<InstanceType<any> | null>(null)
 
 <template>
   <div class="play" :style="{ '--color-course': course.color }">
-    <template v-if="training.session.value && question">
+    <template v-if="training.session && question">
       <!-- ══════ HEADER ══════ -->
       <header class="play-header">
         <button class="play-header__close" @click="closeTraining" aria-label="Close" data-cy="training-close">
@@ -169,11 +173,11 @@ const canvasRef = ref<InstanceType<any> | null>(null)
       <!-- ══════ EASY MODE — RECOGNITION (char → romanization) ══════ -->
       <div v-if="isEasy && question.type === 'recognition'" class="play-body">
         <div class="play-prompt">
-          <span class="play-prompt__char">{{ question.char.symbol }}</span>
+          <span class="play-prompt__char">{{ question.item.symbol }}</span>
           <span class="play-prompt__type">{{ localizedType }}</span>
           <Transition name="fade">
-            <span v-if="training.streak.value > 0" class="play-prompt__streak">
-              {{ t('training.streak', { n: training.streak.value }) }}
+            <span v-if="training.streak > 0" class="play-prompt__streak">
+              {{ t('training.streak', { n: training.streak }) }}
             </span>
           </Transition>
         </div>
@@ -208,7 +212,7 @@ const canvasRef = ref<InstanceType<any> | null>(null)
             </div>
             <div class="feedback-bar__center">
               <span class="feedback-bar__label">{{ answered ? t('training.correct') : t('training.incorrect') }}</span>
-              <span v-if="!answered" class="feedback-bar__answer">{{ t('training.correctAnswer') }} {{ question.char.romanization }}</span>
+              <span v-if="!answered" class="feedback-bar__answer">{{ t('training.correctAnswer') }} {{ question.item.romanization }}</span>
               <div class="feedback-bar__override">
                 <button class="override-btn override-btn--wrong" @click="overrideResult(false)" :class="{ active: answered === false }" aria-label="Mark wrong" data-cy="override-wrong">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -231,11 +235,11 @@ const canvasRef = ref<InstanceType<any> | null>(null)
       <!-- ══════ EASY MODE — WRITING (romanization → character) ══════ -->
       <div v-else-if="isEasy && question.type === 'writing'" class="play-body">
         <div class="play-prompt">
-          <span class="play-prompt__rom">{{ question.char.romanization }}</span>
+          <span class="play-prompt__rom">{{ question.item.romanization }}</span>
           <span class="play-prompt__type">{{ localizedType }}</span>
           <Transition name="fade">
-            <span v-if="training.streak.value > 0" class="play-prompt__streak">
-              {{ t('training.streak', { n: training.streak.value }) }}
+            <span v-if="training.streak > 0" class="play-prompt__streak">
+              {{ t('training.streak', { n: training.streak }) }}
             </span>
           </Transition>
         </div>
@@ -270,7 +274,7 @@ const canvasRef = ref<InstanceType<any> | null>(null)
             </div>
             <div class="feedback-bar__center">
               <span class="feedback-bar__label">{{ answered ? t('training.correct') : t('training.incorrect') }}</span>
-              <span v-if="!answered" class="feedback-bar__answer">{{ t('training.correctAnswer') }} {{ question.char.symbol }} ({{ question.char.romanization }})</span>
+              <span v-if="!answered" class="feedback-bar__answer">{{ t('training.correctAnswer') }} {{ question.item.symbol }} ({{ question.item.romanization }})</span>
               <div class="feedback-bar__override">
                 <button class="override-btn override-btn--wrong" @click="overrideResult(false)" :class="{ active: answered === false }" aria-label="Mark wrong" data-cy="override-wrong">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -293,11 +297,11 @@ const canvasRef = ref<InstanceType<any> | null>(null)
       <!-- ══════ HARD MODE — KEYBOARD (char → type romanization) ══════ -->
       <div v-else-if="isHard && hardInput === 'keyboard'" class="play-body">
         <div class="play-prompt">
-          <span class="play-prompt__char">{{ question.char.symbol }}</span>
+          <span class="play-prompt__char">{{ question.item.symbol }}</span>
           <span class="play-prompt__type">{{ localizedType }}</span>
           <Transition name="fade">
-            <span v-if="training.streak.value > 0" class="play-prompt__streak">
-              {{ t('training.streak', { n: training.streak.value }) }}
+            <span v-if="training.streak > 0" class="play-prompt__streak">
+              {{ t('training.streak', { n: training.streak }) }}
             </span>
           </Transition>
         </div>
@@ -332,7 +336,7 @@ const canvasRef = ref<InstanceType<any> | null>(null)
             </div>
             <div class="feedback-bar__center">
               <span class="feedback-bar__label">{{ answered ? t('training.correct') : t('training.incorrect') }}</span>
-              <span v-if="!answered" class="feedback-bar__answer">{{ t('training.correctAnswer') }} {{ question.char.romanization }}</span>
+              <span v-if="!answered" class="feedback-bar__answer">{{ t('training.correctAnswer') }} {{ question.item.romanization }}</span>
               <div class="feedback-bar__override">
                 <button class="override-btn override-btn--wrong" @click="overrideResult(false)" :class="{ active: answered === false }" aria-label="Mark wrong" data-cy="override-wrong">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -355,11 +359,11 @@ const canvasRef = ref<InstanceType<any> | null>(null)
       <!-- ══════ HARD MODE — DRAWING (romanization → draw character) ══════ -->
       <div v-else-if="isHard && hardInput === 'drawing'" class="play-body">
         <div class="play-prompt">
-          <span class="play-prompt__rom">{{ question.char.romanization }}</span>
+          <span class="play-prompt__rom">{{ question.item.romanization }}</span>
           <span class="play-prompt__type">{{ localizedType }}</span>
           <Transition name="fade">
-            <span v-if="training.streak.value > 0" class="play-prompt__streak">
-              {{ t('training.streak', { n: training.streak.value }) }}
+            <span v-if="training.streak > 0" class="play-prompt__streak">
+              {{ t('training.streak', { n: training.streak }) }}
             </span>
           </Transition>
         </div>
@@ -368,7 +372,7 @@ const canvasRef = ref<InstanceType<any> | null>(null)
           <div class="draw-area__placeholder" v-if="answered === null">
             {{ t('training.drawBelow') }}
           </div>
-          <WritingCanvas ref="canvasRef" :char-id="question.char.id" />
+          <WritingCanvas ref="canvasRef" :char-id="question.item.id" />
         </div>
 
         <div class="draw-actions">
@@ -390,7 +394,7 @@ const canvasRef = ref<InstanceType<any> | null>(null)
             </div>
             <div class="feedback-bar__center">
               <span class="feedback-bar__label">{{ answered ? t('training.correct') : t('training.incorrect') }}</span>
-              <span v-if="!answered" class="feedback-bar__answer">{{ t('training.correctAnswer') }} {{ question.char.symbol }}</span>
+              <span v-if="!answered" class="feedback-bar__answer">{{ t('training.correctAnswer') }} {{ question.item.symbol }}</span>
               <div class="feedback-bar__override">
                 <button class="override-btn override-btn--wrong" @click="overrideResult(false)" :class="{ active: answered === false }" aria-label="Mark wrong" data-cy="override-wrong">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -484,9 +488,12 @@ const canvasRef = ref<InstanceType<any> | null>(null)
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--space-6) var(--space-4);
-  padding-bottom: 100px; /* space for feedback bar */
+  padding: var(--space-10) var(--space-6);
+  padding-bottom: 120px; /* space for feedback bar */
   position: relative;
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 /* ══════════ PROMPT ══════════ */

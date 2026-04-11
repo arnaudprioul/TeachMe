@@ -46,6 +46,30 @@
     "italian": "Italien",
     "italianDesc": "Grammaire, vocabulaire et culture"
   },
+  "langProfile": {
+    "korean": {
+      "heroTitle": "Découvrir le Coréen",
+      "heroSub": "Rejoins plus de 80 millions de locuteurs dans le monde et explore l'une des langues et cultures les plus fascinantes d'Asie.",
+      "musicTitle": "K-Pop & Musique",
+      "musicDesc": "De BTS à BLACKPINK, la musique coréenne a conquis le monde. Apprendre le coréen te permet de comprendre les paroles et de te connecter à la culture.",
+      "foodTitle": "Gastronomie",
+      "foodDesc": "Kimchi, bibimbap, BBQ coréen — la cuisine coréenne est riche, variée et de plus en plus populaire dans le monde.",
+      "dramaTitle": "K-Dramas & Cinéma",
+      "dramaDesc": "De Squid Game à Parasite, le divertissement coréen captive le monde entier. Regarde sans sous-titres !",
+      "historyTitle": "Histoire & Patrimoine",
+      "historyDesc": "5 000 ans d'histoire, des palais anciens et un système d'écriture unique conçu pour le peuple.",
+      "factSpeakers": "Locuteurs",
+      "factAlphabet": "Caractères",
+      "factRanking": "Classement mondial",
+      "factCountry": "Pays",
+      "whyLearnTitle": "Pourquoi apprendre le coréen ?",
+      "whyLearnDesc": "Le coréen est l'une des langues dont l'apprentissage croît le plus vite au monde, porté par la vague mondiale de la culture coréenne.",
+      "coursesTitle": "Cours disponibles",
+      "coursesDesc": "Commence ton parcours avec nos cours interactifs.",
+      "comingSoonTitle": "Bientôt disponible",
+      "comingSoonDesc": "D'autres cours et contenus sont en préparation."
+    }
+  },
   "korean": {
     "hubTitle": "Coréen",
     "hubSubtitle": "Maîtrise la langue coréenne étape par étape.",
@@ -219,6 +243,41 @@
   "common": {
     "loading": "Chargement…", "error": "Une erreur est survenue",
     "back": "Retour", "next": "Suivant", "soon": "Bientôt", "available": "Disponible",
-    "startLearning": "Commencer à apprendre"
+    "startLearning": "Commencer à apprendre", "save": "Enregistrer", "cancel": "Annuler"
+  },
+  "profile": {
+    "title": "Profil",
+    "memberSince": "Membre depuis {date}",
+    "editProfile": "Modifier le profil",
+    "stats": "Statistiques",
+    "languages": "Mes langues",
+    "noLanguages": "Tu n'as commencé aucun cours pour l'instant.",
+    "favorites": "Favoris",
+    "noFavorites": "Aucun favori. Mets en favori des caractères pour les ajouter ici.",
+    "settings": "Paramètres",
+    "appearance": "Apparence",
+    "theme": "Thème",
+    "themeSystem": "Système",
+    "themeLight": "Clair",
+    "themeDark": "Sombre",
+    "language": "Langue d'affichage",
+    "preferences": "Préférences",
+    "soundEnabled": "Effets sonores",
+    "soundEnabledDesc": "Jouer les sons pendant les exercices",
+    "dailyReminder": "Rappel quotidien",
+    "dailyReminderDesc": "Recevoir un rappel pour pratiquer chaque jour",
+    "account": "Compte",
+    "username": "Nom d'utilisateur",
+    "email": "Email",
+    "changePassword": "Changer le mot de passe",
+    "deleteAccount": "Supprimer le compte",
+    "deleteAccountWarning": "Cette action est définitive et irréversible.",
+    "totalSessions": "Sessions",
+    "totalCorrect": "Bonnes réponses",
+    "bestStreak": "Meilleure série",
+    "accuracy": "Précision",
+    "tabOverview": "Vue d'ensemble",
+    "tabFavorites": "Favoris",
+    "tabSettings": "Paramètres"
   }
 }

@@ -5,13 +5,25 @@ import { useAuthStore } from '~/stores/auth.store'
 definePageMeta({ layout: 'auth' })
 const { t } = useI18n()
 const auth = useAuthStore()
+const route = useRoute()
 const identifier = ref(''); const password = ref(''); const error = ref(''); const loading = ref(false)
+
+function safeRedirect(): string {
+  const r = route.query.redirect
+  if (typeof r === 'string' && r.startsWith('/') && !r.startsWith('//')) return r
+  return '/dashboard'
+}
 
 async function submit() {
   error.value = ''; loading.value = true
-  try { await auth.login(identifier.value, password.value); await navigateTo('/dashboard') }
-  catch (e: any) { error.value = e?.data?.statusMessage || t('auth.invalidCredentials') }
-  finally { loading.value = false }
+  try {
+    await auth.login(identifier.value, password.value)
+    await navigateTo(safeRedirect())
+  } catch (e: any) {
+    error.value = e?.data?.statusMessage || t('auth.invalidCredentials')
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 

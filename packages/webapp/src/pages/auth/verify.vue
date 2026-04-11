@@ -45,9 +45,17 @@ function onPaste(e: ClipboardEvent) {
   document.getElementById(`otp-${Math.min(text.length, 5)}`)?.focus()
 }
 
+const route = useRoute()
+
+function safeRedirect(): string {
+  const r = route.query.redirect
+  if (typeof r === 'string' && r.startsWith('/') && !r.startsWith('//')) return r
+  return '/dashboard'
+}
+
 async function submit() {
   if (!isComplete.value) return; error.value = ''; loading.value = true
-  try { await auth.verifyOtp(code.value); await navigateTo('/dashboard') }
+  try { await auth.verifyOtp(code.value); await navigateTo(safeRedirect()) }
   catch (e: any) { error.value = e?.data?.statusMessage || t('common.error'); digits.value = ['', '', '', '', '', '']; document.getElementById('otp-0')?.focus() }
   finally { loading.value = false }
 }
