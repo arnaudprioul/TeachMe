@@ -117,7 +117,79 @@
     },
     "japanese": {
       "name": "Japanese",
-      "desc": "Hiragana, Katakana & Kanji"
+      "desc": "Hiragana, Katakana & Kanji",
+      "hiragana": {
+        "title": "Hiragana",
+        "desc": "Master the 46 phonetic kana — the first script every Japanese learner needs.",
+        "training": "Training",
+        "trainingDesc": "Practice with interactive exercises.",
+        "vowels": "Vowels",
+        "gojuon": "Gojuon",
+        "charType_consonant": "Mora",
+        "charType_vowel": "Vowel",
+        "charSubtype_basic": "Basic",
+        "pronunciation": "Pronunciation",
+        "strokeCount": "{n} stroke(s)",
+        "examples": "Examples",
+        "prevChar": "Previous",
+        "nextChar": "Next",
+        "backToGrid": "Back to Hiragana",
+        "section": {
+          "tableTitle": "Full Table",
+          "tableDesc": "All 46 hiragana at a glance"
+        },
+        "practice": {
+          "title": "Practice",
+          "write": "Write",
+          "strokeOrder": "Stroke Order",
+          "listen": "Listen",
+          "clearCanvas": "Clear",
+          "playSound": "Play pronunciation",
+          "guidedMode": "Show character guide",
+          "guidesVisibility": "Guides visibility",
+          "mouthPosition": "Mouth position",
+          "phonetics": "Phonetics",
+          "soundsLike": "Sounds like",
+          "mouthDesc": "Mouth position",
+          "tip": "Tip"
+        }
+      },
+      "katakana": {
+        "title": "Katakana",
+        "desc": "The 46 angular kana used for loanwords, names and emphasis.",
+        "training": "Training",
+        "trainingDesc": "Practice with interactive exercises.",
+        "vowels": "Vowels",
+        "gojuon": "Gojuon",
+        "charType_consonant": "Mora",
+        "charType_vowel": "Vowel",
+        "charSubtype_basic": "Basic",
+        "pronunciation": "Pronunciation",
+        "strokeCount": "{n} stroke(s)",
+        "examples": "Examples",
+        "prevChar": "Previous",
+        "nextChar": "Next",
+        "backToGrid": "Back to Katakana",
+        "section": {
+          "tableTitle": "Full Table",
+          "tableDesc": "All 46 katakana at a glance"
+        },
+        "practice": {
+          "title": "Practice",
+          "write": "Write",
+          "strokeOrder": "Stroke Order",
+          "listen": "Listen",
+          "clearCanvas": "Clear",
+          "playSound": "Play pronunciation",
+          "guidedMode": "Show character guide",
+          "guidesVisibility": "Guides visibility",
+          "mouthPosition": "Mouth position",
+          "phonetics": "Phonetics",
+          "soundsLike": "Sounds like",
+          "mouthDesc": "Mouth position",
+          "tip": "Tip"
+        }
+      }
     },
     "chinese": {
       "name": "Chinese",
@@ -158,6 +230,28 @@
       "coursesDesc": "Start your journey with our interactive courses.",
       "comingSoonTitle": "Coming soon",
       "comingSoonDesc": "More courses and content are being prepared."
+    },
+    "japanese": {
+      "heroTitle": "Discover Japanese",
+      "heroSub": "Join over 125 million speakers and explore one of the world's most influential languages and cultures.",
+      "foodTitle": "Cuisine",
+      "foodDesc": "Sushi, ramen, tempura, wagashi — Japanese food is celebrated worldwide for its precision and seasonality.",
+      "cultureTitle": "Culture & Traditions",
+      "cultureDesc": "Tea ceremony, ikebana, calligraphy, festivals — centuries of refined traditions still very much alive today.",
+      "animeTitle": "Anime, Manga & Pop",
+      "animeDesc": "From Studio Ghibli to One Piece, Japanese pop culture defines entertainment for billions. Read and watch in the original.",
+      "historyTitle": "History & Heritage",
+      "historyDesc": "Samurai, shogunate, Meiji restoration — millennia of history, ancient temples, and cutting-edge cities side by side.",
+      "factSpeakers": "Speakers",
+      "factAlphabet": "Hiragana + Katakana",
+      "factRanking": "World ranking",
+      "factCountry": "Country",
+      "whyLearnTitle": "Why learn Japanese?",
+      "whyLearnDesc": "Japanese opens the door to a unique culture, a major economy, and a creative powerhouse spanning anime, games, design and literature.",
+      "coursesTitle": "Available courses",
+      "coursesDesc": "Start your journey with our interactive courses.",
+      "comingSoonTitle": "Coming soon",
+      "comingSoonDesc": "Kanji and vocabulary courses are being prepared."
     }
   },
   "training": {

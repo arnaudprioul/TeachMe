@@ -117,7 +117,79 @@
     },
     "japanese": {
       "name": "Japonais",
-      "desc": "Hiragana, Katakana et Kanji"
+      "desc": "Hiragana, Katakana et Kanji",
+      "hiragana": {
+        "title": "Hiragana",
+        "desc": "Maîtrise les 46 kana phonétiques — le premier alphabet japonais à apprendre.",
+        "training": "Entraînement",
+        "trainingDesc": "Entraîne-toi avec des exercices interactifs.",
+        "vowels": "Voyelles",
+        "gojuon": "Gojuon",
+        "charType_consonant": "Mora",
+        "charType_vowel": "Voyelle",
+        "charSubtype_basic": "De base",
+        "pronunciation": "Prononciation",
+        "strokeCount": "{n} trait(s)",
+        "examples": "Exemples",
+        "prevChar": "Précédent",
+        "nextChar": "Suivant",
+        "backToGrid": "Retour aux Hiragana",
+        "section": {
+          "tableTitle": "Tableau complet",
+          "tableDesc": "Les 46 hiragana d'un coup d'œil"
+        },
+        "practice": {
+          "title": "Pratique",
+          "write": "Écrire",
+          "strokeOrder": "Ordre des traits",
+          "listen": "Écouter",
+          "clearCanvas": "Effacer",
+          "playSound": "Écouter la prononciation",
+          "guidedMode": "Afficher le caractère guide",
+          "guidesVisibility": "Visibilité des guides",
+          "mouthPosition": "Position de la bouche",
+          "phonetics": "Phonétique",
+          "soundsLike": "Ressemble à",
+          "mouthDesc": "Position de la bouche",
+          "tip": "Astuce"
+        }
+      },
+      "katakana": {
+        "title": "Katakana",
+        "desc": "Les 46 kana anguleux utilisés pour les mots étrangers, les noms et l'emphase.",
+        "training": "Entraînement",
+        "trainingDesc": "Entraîne-toi avec des exercices interactifs.",
+        "vowels": "Voyelles",
+        "gojuon": "Gojuon",
+        "charType_consonant": "Mora",
+        "charType_vowel": "Voyelle",
+        "charSubtype_basic": "De base",
+        "pronunciation": "Prononciation",
+        "strokeCount": "{n} trait(s)",
+        "examples": "Exemples",
+        "prevChar": "Précédent",
+        "nextChar": "Suivant",
+        "backToGrid": "Retour aux Katakana",
+        "section": {
+          "tableTitle": "Tableau complet",
+          "tableDesc": "Les 46 katakana d'un coup d'œil"
+        },
+        "practice": {
+          "title": "Pratique",
+          "write": "Écrire",
+          "strokeOrder": "Ordre des traits",
+          "listen": "Écouter",
+          "clearCanvas": "Effacer",
+          "playSound": "Écouter la prononciation",
+          "guidedMode": "Afficher le caractère guide",
+          "guidesVisibility": "Visibilité des guides",
+          "mouthPosition": "Position de la bouche",
+          "phonetics": "Phonétique",
+          "soundsLike": "Ressemble à",
+          "mouthDesc": "Position de la bouche",
+          "tip": "Astuce"
+        }
+      }
     },
     "chinese": {
       "name": "Chinois",
@@ -158,6 +230,28 @@
       "coursesDesc": "Commence ton parcours avec nos cours interactifs.",
       "comingSoonTitle": "Bientôt disponible",
       "comingSoonDesc": "D'autres cours et contenus sont en préparation."
+    },
+    "japanese": {
+      "heroTitle": "Découvrir le Japonais",
+      "heroSub": "Rejoins plus de 125 millions de locuteurs et explore l'une des langues et cultures les plus influentes au monde.",
+      "foodTitle": "Gastronomie",
+      "foodDesc": "Sushi, ramen, tempura, wagashi — la cuisine japonaise est célébrée dans le monde entier pour sa précision et son rapport aux saisons.",
+      "cultureTitle": "Culture & Traditions",
+      "cultureDesc": "Cérémonie du thé, ikebana, calligraphie, festivals — des siècles de traditions raffinées toujours bien vivantes.",
+      "animeTitle": "Anime, Manga & Pop",
+      "animeDesc": "Du Studio Ghibli à One Piece, la pop culture japonaise façonne le divertissement de milliards de personnes. Lis et regarde en VO.",
+      "historyTitle": "Histoire & Patrimoine",
+      "historyDesc": "Samouraïs, shogunat, restauration Meiji — des millénaires d'histoire, des temples anciens et des villes ultra-modernes côte à côte.",
+      "factSpeakers": "Locuteurs",
+      "factAlphabet": "Hiragana + Katakana",
+      "factRanking": "Classement mondial",
+      "factCountry": "Pays",
+      "whyLearnTitle": "Pourquoi apprendre le japonais ?",
+      "whyLearnDesc": "Le japonais ouvre la porte à une culture unique, à une grande économie et à une puissance créative qui rayonne dans l'anime, le jeu vidéo, le design et la littérature.",
+      "coursesTitle": "Cours disponibles",
+      "coursesDesc": "Commence ton parcours avec nos cours interactifs.",
+      "comingSoonTitle": "Bientôt disponible",
+      "comingSoonDesc": "Les cours de Kanji et de vocabulaire sont en préparation."
     }
   },
   "training": {

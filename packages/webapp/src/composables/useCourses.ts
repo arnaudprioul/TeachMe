@@ -25,7 +25,7 @@ const COURSES: ICourse[] = [
     colorLight: '#ff7a93',
     colorSubtle: '#ffe4ea',
     route: '/japanese',
-    status: 'coming_soon',
+    status: 'available',
   },
   {
     slug: 'chinese',
