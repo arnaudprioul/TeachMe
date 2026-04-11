@@ -188,12 +188,62 @@ defineExpose({ play, stop, isPlaying })
   justify-content: center;
 }
 
-/* Static SVG display */
+/* Static SVG display.
+ *
+ * The component renders SVGs from two different sources, each with its
+ * own structural conventions:
+ *
+ *  - **Korean Hangeul** (hand-crafted, in `assets/.../korean-hangeul/`):
+ *    each `<g class="jamo">` contains a single filled-shape path that
+ *    outlines the whole jamo silhouette. Stroke numbers are filled
+ *    paths inside `<g class="stroke-number">`. Direction arrows are
+ *    `<path class="order-arrow">`.
+ *
+ *  - **Japanese kana** (KanjiVG, in `assets/.../japanese-*-/`): each
+ *    `<g class="kana-strokes">` contains one center-line path per
+ *    stroke; the brush effect comes from the CSS stroking those paths.
+ *    Stroke numbers are `<text>` elements inside
+ *    `<g class="stroke-number">`. No direction arrows.
+ *
+ * Two distinct class names (`jamo` vs `kana-strokes`) keep the rules
+ * unambiguous and let the same component render both formats without
+ * any per-course branching in the template. */
 .sa__static { width: 100%; height: 100%; }
-.sa__static :deep(svg) { width: 100%; height: 100%; }
-.sa__static :deep(.jamo) { fill: var(--color-text); opacity: 0.85; }
-.sa__static :deep(.stroke-number path) { fill: var(--color-course, var(--color-primary)); }
-.sa__static :deep(.order-arrow) { fill: var(--color-course, var(--color-primary)); opacity: 0.7; }
+.sa__static :deep(svg) { width: 100%; height: 100%; display: block; }
+
+/* Korean Hangeul: filled-silhouette jamo shapes. */
+.sa__static :deep(.jamo) {
+  fill: var(--color-text);
+  opacity: 0.85;
+}
+
+/* Japanese kana (KanjiVG): brush-style center-line strokes. */
+.sa__static :deep(.kana-strokes path) {
+  fill: none;
+  stroke: var(--color-text);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.85;
+}
+
+/* Stroke numbers — Korean version uses filled `<path>`, KanjiVG uses
+ * `<text>`. The same colour rule covers both. */
+.sa__static :deep(.stroke-number path) {
+  fill: var(--color-course, var(--color-primary));
+}
+.sa__static :deep(.stroke-number text) {
+  fill: var(--color-course, var(--color-primary));
+  font-family: var(--font-mono, monospace);
+  font-size: 8px;
+  font-weight: 700;
+}
+
+/* Korean direction arrows (no equivalent in KanjiVG). */
+.sa__static :deep(.order-arrow) {
+  fill: var(--color-course, var(--color-primary));
+  opacity: 0.7;
+}
 
 /* Animation SVG */
 .sa__anim { width: 100%; height: 100%; }
