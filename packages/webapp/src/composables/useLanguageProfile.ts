@@ -1,3 +1,6 @@
+import { computed } from 'vue'
+import { listCoursesForLanguage } from './data/courses'
+
 export interface ILanguageHighlight {
   icon: string
   titleKey: string
@@ -17,22 +20,16 @@ export interface ILanguageProfile {
   slug: string
   nameKey: string
   flag: string
-  // Hero
   heroTitleKey: string
   heroSubKey: string
-  heroImage?: string // optional background/illustration
-  // Cultural highlights (3-4 cards)
   highlights: ILanguageHighlight[]
-  // Courses / writing systems
-  courses: ILanguageCourse[]
-  // Fun facts (displayed in a band)
   facts: { labelKey: string; value: string }[]
 }
 
 const PROFILES: Record<string, ILanguageProfile> = {
   korean: {
     slug: 'korean',
-    nameKey: 'courses.korean',
+    nameKey: 'courses.korean.name',
     flag: '\u{1F1F0}\u{1F1F7}',
     heroTitleKey: 'langProfile.korean.heroTitle',
     heroSubKey: 'langProfile.korean.heroSub',
@@ -41,9 +38,6 @@ const PROFILES: Record<string, ILanguageProfile> = {
       { icon: '🍜', titleKey: 'langProfile.korean.foodTitle', descKey: 'langProfile.korean.foodDesc' },
       { icon: '🎬', titleKey: 'langProfile.korean.dramaTitle', descKey: 'langProfile.korean.dramaDesc' },
       { icon: '🏛️', titleKey: 'langProfile.korean.historyTitle', descKey: 'langProfile.korean.historyDesc' },
-    ],
-    courses: [
-      { slug: 'hangeul', titleKey: 'korean.hangeul', descKey: 'korean.hangeulDesc', icon: '한', route: '/korean/hangeul', available: true },
     ],
     facts: [
       { labelKey: 'langProfile.korean.factSpeakers', value: '80M+' },
@@ -54,7 +48,26 @@ const PROFILES: Record<string, ILanguageProfile> = {
   },
 }
 
+const COURSE_ICONS: Record<string, string> = {
+  hangeul: '한',
+  hiragana: 'あ',
+  katakana: 'ア',
+  pinyin: '汉',
+}
+
 export function useLanguageProfile(slug: string) {
   const profile = PROFILES[slug]
-  return { profile }
+
+  const courses = computed<ILanguageCourse[]>(() =>
+    listCoursesForLanguage(slug).map(m => ({
+      slug: m.course,
+      titleKey: `courses.${m.lang}.${m.course}.title`,
+      descKey: `courses.${m.lang}.${m.course}.desc`,
+      icon: COURSE_ICONS[m.course] ?? '?',
+      route: `/${m.lang}/${m.course}`,
+      available: true,
+    })),
+  )
+
+  return { profile, courses }
 }

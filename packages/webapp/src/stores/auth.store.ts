@@ -2,17 +2,52 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 const TOKEN_KEY = 'teachme_token'
+const USER_KEY = 'teachme_user'
 const PENDING_KEY = 'teachme_pending_otp'
 
+interface IAuthUser { id: string; email: string | null; username: string }
+
+function readStoredUser(): IAuthUser | null {
+  if (typeof localStorage === 'undefined') return null
+  const raw = localStorage.getItem(USER_KEY)
+  if (!raw) return null
+  try { return JSON.parse(raw) as IAuthUser }
+  catch { localStorage.removeItem(USER_KEY); return null }
+}
+
+function readStoredToken(): string | null {
+  if (typeof localStorage === 'undefined') return null
+  return localStorage.getItem(TOKEN_KEY)
+}
+
+interface IPendingOtp {
+  identifier: string
+  channel: 'email' | 'sms'
+  masked: string
+}
+
+function readStoredPending(): IPendingOtp | null {
+  if (typeof localStorage === 'undefined') return null
+  const raw = localStorage.getItem(PENDING_KEY)
+  if (!raw) return null
+  try { return JSON.parse(raw) as IPendingOtp }
+  catch { localStorage.removeItem(PENDING_KEY); return null }
+}
+
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<{ id: string; email: string | null; username: string } | null>(null)
-  const token = ref<string | null>(null)
+  // Hydrate from localStorage at the very moment the store is instantiated.
+  // This guarantees the *first* call to useAuthStore() — wherever it comes
+  // from (route middleware, plugin, component) — already sees the persisted
+  // session, with no plugin-ordering gymnastics required.
+  const user = ref<IAuthUser | null>(readStoredUser())
+  const token = ref<string | null>(readStoredToken())
   const isAuthenticated = computed(() => !!token.value)
 
-  // OTP flow state
-  const pendingIdentifier = ref<string | null>(null)
-  const pendingChannel = ref<'email' | 'sms' | null>(null)
-  const pendingMasked = ref<string | null>(null)
+  // OTP flow state (also persisted across reloads)
+  const _pending = readStoredPending()
+  const pendingIdentifier = ref<string | null>(_pending?.identifier ?? null)
+  const pendingChannel = ref<'email' | 'sms' | null>(_pending?.channel ?? null)
+  const pendingMasked = ref<string | null>(_pending?.masked ?? null)
 
   async function login(identifier: string, password: string) {
     const res = await $fetch<{ data: { user: typeof user.value; token: string } }>('/api/v1/auth/login', {
@@ -52,10 +87,13 @@ export const useAuthStore = defineStore('auth', () => {
     })
   }
 
-  function _setAuth(data: { user: typeof user.value; token: string }) {
+  function _setAuth(data: { user: IAuthUser | null; token: string }) {
     user.value = data.user
     token.value = data.token
-    if (import.meta.client) localStorage.setItem(TOKEN_KEY, data.token)
+    if (import.meta.client) {
+      localStorage.setItem(TOKEN_KEY, data.token)
+      if (data.user) localStorage.setItem(USER_KEY, JSON.stringify(data.user))
+    }
   }
 
   function logout() {
@@ -66,29 +104,14 @@ export const useAuthStore = defineStore('auth', () => {
     pendingMasked.value = null
     if (import.meta.client) {
       localStorage.removeItem(TOKEN_KEY)
+      localStorage.removeItem(USER_KEY)
       localStorage.removeItem(PENDING_KEY)
-    }
-  }
-
-  function restoreFromStorage() {
-    if (import.meta.client) {
-      const stored = localStorage.getItem(TOKEN_KEY)
-      if (stored) token.value = stored
-      const pending = localStorage.getItem(PENDING_KEY)
-      if (pending) {
-        try {
-          const p = JSON.parse(pending)
-          pendingIdentifier.value = p.identifier
-          pendingChannel.value = p.channel
-          pendingMasked.value = p.masked
-        } catch { localStorage.removeItem(PENDING_KEY) }
-      }
     }
   }
 
   return {
     user, token, isAuthenticated,
     pendingIdentifier, pendingChannel, pendingMasked,
-    login, register, verifyOtp, resendOtp, logout, restoreFromStorage,
+    login, register, verifyOtp, resendOtp, logout,
   }
 })

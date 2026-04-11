@@ -1,6 +1,4 @@
 import { defineStore } from 'pinia'
-import { useTraining } from '~/composables/useTraining'
+import { createCourseTraining } from '~/composables/useCourseTraining'
 
-export const useTrainingStore = defineStore('training', () => {
-  return useTraining()
-})
+export const useTrainingStore = defineStore('training', () => createCourseTraining())

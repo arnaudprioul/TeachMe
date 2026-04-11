@@ -1,10 +1,18 @@
-import { ref, watch, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 
 export type ThemeMode = 'system' | 'light' | 'dark'
 
 const STORAGE_KEY = 'teachme_theme'
+const VALID_MODES: ThemeMode[] = ['system', 'light', 'dark']
 
-const mode = ref<ThemeMode>('system')
+function readStoredMode(): ThemeMode {
+  if (typeof localStorage === 'undefined') return 'system'
+  const stored = localStorage.getItem(STORAGE_KEY) as ThemeMode | null
+  return stored && VALID_MODES.includes(stored) ? stored : 'system'
+}
+
+// Module-level singleton — hydrated synchronously on first import.
+const mode = ref<ThemeMode>(readStoredMode())
 
 function getSystemPreference(): 'light' | 'dark' {
   if (typeof window === 'undefined') return 'light'
@@ -29,24 +37,25 @@ function setTheme(newMode: ThemeMode) {
   applyTheme()
 }
 
-function init() {
-  if (typeof localStorage !== 'undefined') {
-    const stored = localStorage.getItem(STORAGE_KEY) as ThemeMode | null
-    if (stored && ['system', 'light', 'dark'].includes(stored)) {
-      mode.value = stored
-    }
-  }
+// One-time side effects on first import (client-only).
+let initialized = false
+function initOnce() {
+  if (initialized) return
+  initialized = true
   applyTheme()
-
   if (typeof window !== 'undefined') {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
       if (mode.value === 'system') applyTheme()
     })
   }
 }
+if (typeof window !== 'undefined') initOnce()
 
 export function useTheme() {
-  onMounted(init)
+  // Cover the SSR-then-hydrate edge case: if the module was first evaluated
+  // on the server, initOnce() was a no-op. Re-run it now that we're certain
+  // to be on the client.
+  initOnce()
 
   const resolvedTheme = computed(() => {
     if (mode.value === 'system') return getSystemPreference()

@@ -316,10 +316,18 @@ async function logout() {
   width: 100%;
 }
 
-/* Pages that want centered content use this class */
+/* Pages that want centered content use this class.
+   `width: 100%` is the important bit: without it the container would
+   shrink to the width of its widest child (max-content sizing on a flex
+   column parent), so a page like /practice/[id] would visually jump
+   between, say, 595px and 856px depending on which character is
+   displayed. With `width: 100%` the container always claims the full
+   available column width, capped at 960px. */
 .app-main :deep(.page-container) {
+  width: 100%;
   max-width: 960px;
   margin: 0 auto;
   padding: var(--space-8) var(--space-6);
+  box-sizing: border-box;
 }
 </style>

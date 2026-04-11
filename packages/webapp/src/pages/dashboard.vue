@@ -26,8 +26,8 @@ const { available, comingSoon } = useCourses()
           :data-cy="`course-${course.slug}`"
         >
           <span class="course-card__flag">{{ course.flag }}</span>
-          <span class="course-card__name">{{ t(`courses.${course.slug}`) }}</span>
-          <span class="course-card__desc">{{ t(`courses.${course.slug}Desc`) }}</span>
+          <span class="course-card__name">{{ t(`courses.${course.slug}.name`) }}</span>
+          <span class="course-card__desc">{{ t(`courses.${course.slug}.desc`) }}</span>
           <span class="course-card__badge" :style="{ background: course.colorSubtle, color: course.color }">{{ t('common.available') }}</span>
         </NuxtLink>
       </div>
@@ -43,7 +43,7 @@ const { available, comingSoon } = useCourses()
           :data-cy="`course-${course.slug}`"
         >
           <span class="course-card__flag">{{ course.flag }}</span>
-          <span class="course-card__name">{{ t(`courses.${course.slug}`) }}</span>
+          <span class="course-card__name">{{ t(`courses.${course.slug}.name`) }}</span>
           <span class="course-card__badge course-card__badge--muted">{{ t('common.soon') }}</span>
         </div>
       </div>

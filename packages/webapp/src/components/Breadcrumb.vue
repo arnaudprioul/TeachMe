@@ -20,10 +20,6 @@ defineProps<{ items: IBreadcrumbItem[] }>()
 </template>
 
 <style scoped>
-.bc {
-  margin-bottom: var(--space-5);
-}
-
 .bc ol {
   display: flex;
   align-items: center;

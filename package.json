@@ -19,7 +19,7 @@
     "docker:infra:down": "docker compose down",
 
     "docker:dev:up": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d",
-    "docker:dev:build": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
+    "docker:dev:build": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build",
     "docker:dev:down": "docker compose -f docker-compose.yml -f docker-compose.dev.yml down",
 
     "docker:prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d",

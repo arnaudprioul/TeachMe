@@ -1,39 +1,74 @@
 import { defineStore } from 'pinia'
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 
 const STORAGE_KEY = 'teachme_favorites'
 
+/** Favorites scoped per course (key = `${lang}-${course}`). */
 export const useFavoritesStore = defineStore('favorites', () => {
-  const items = ref<Set<string>>(new Set())
+  const byCourse = ref<Record<string, Set<string>>>({})
 
   function load() {
     if (typeof localStorage === 'undefined') return
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) items.value = new Set(JSON.parse(raw))
+      if (!raw) return
+      const parsed = JSON.parse(raw)
+
+      // Migration: legacy flat array → korean-hangeul scoped
+      if (Array.isArray(parsed)) {
+        byCourse.value = { 'korean-hangeul': new Set(parsed) }
+        persist()
+        return
+      }
+
+      // Modern format: { 'korean-hangeul': string[] }
+      const normalized: Record<string, Set<string>> = {}
+      for (const [key, value] of Object.entries(parsed)) {
+        normalized[key] = new Set(Array.isArray(value) ? value : [])
+      }
+      byCourse.value = normalized
     } catch {}
   }
 
   function persist() {
     if (typeof localStorage === 'undefined') return
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([...items.value]))
+    const serializable: Record<string, string[]> = {}
+    for (const [key, set] of Object.entries(byCourse.value)) {
+      serializable[key] = [...set]
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializable))
   }
 
-  function toggle(charId: string) {
-    if (items.value.has(charId)) items.value.delete(charId)
-    else items.value.add(charId)
-    items.value = new Set(items.value) // trigger reactivity
+  function toggle(courseKey: string, charId: string) {
+    if (!byCourse.value[courseKey]) byCourse.value[courseKey] = new Set()
+    const set = byCourse.value[courseKey]
+    if (set.has(charId)) set.delete(charId)
+    else set.add(charId)
+    byCourse.value = { ...byCourse.value, [courseKey]: new Set(set) }
     persist()
   }
 
-  function isFavorite(charId: string): boolean {
-    return items.value.has(charId)
+  function isFavorite(courseKey: string, charId: string): boolean {
+    return byCourse.value[courseKey]?.has(charId) ?? false
   }
 
-  const list = computed(() => [...items.value])
-  const count = computed(() => items.value.size)
+  function listForCourse(courseKey: string): string[] {
+    return [...(byCourse.value[courseKey] ?? [])]
+  }
+
+  function countForCourse(courseKey: string): number {
+    return byCourse.value[courseKey]?.size ?? 0
+  }
+
+  const totalCount = computed(() => {
+    let n = 0
+    for (const s of Object.values(byCourse.value)) n += s.size
+    return n
+  })
+
+  const courseKeys = computed(() => Object.keys(byCourse.value).filter(k => byCourse.value[k].size > 0))
 
   load()
 
-  return { items, list, count, toggle, isFavorite }
+  return { byCourse, totalCount, courseKeys, toggle, isFavorite, listForCourse, countForCourse }
 })

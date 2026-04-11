@@ -12,7 +12,6 @@ export default defineNuxtPlugin((nuxtApp) => {
 
   globalThis.$fetch = $fetch.create({
     onRequest({ options }) {
-      auth.restoreFromStorage()
       if (auth.token) {
         const headers = new Headers(options.headers as HeadersInit | undefined)
         headers.set('Authorization', `Bearer ${auth.token}`)

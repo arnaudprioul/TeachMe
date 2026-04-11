@@ -6,7 +6,8 @@ import { useStatsStore } from '~/stores/stats.store'
 import { useFavoritesStore } from '~/stores/favorites.store'
 import { useTheme, type ThemeMode } from '~/composables/useTheme'
 import { useCourses } from '~/composables/useCourses'
-import { useHangeul } from '~/composables/useHangeul'
+import { COURSE_REGISTRY } from '~/composables/data/courses'
+import type { ICourseCharacter } from '~/composables/data/courses/types'
 
 definePageMeta({ layout: 'default', middleware: 'auth' })
 
@@ -16,23 +17,57 @@ const stats = useStatsStore()
 const favorites = useFavoritesStore()
 const { mode, setTheme } = useTheme()
 const { courses } = useCourses()
-const { all: hangeulChars, getById } = useHangeul()
 
 const activeTab = ref<'overview' | 'favorites' | 'settings'>('overview')
 
 const userInitial = computed(() => auth.user?.username?.[0]?.toUpperCase() ?? '?')
 
-const favoriteChars = computed(() =>
-  favorites.list.map(id => getById(id)).filter(Boolean),
+interface IFavoriteGroup {
+  courseKey: string
+  lang: string
+  course: string
+  langName: string
+  courseName: string
+  flag?: string
+  color?: string
+  chars: ICourseCharacter[]
+}
+
+const favoriteGroups = computed<IFavoriteGroup[]>(() =>
+  favorites.courseKeys.map(courseKey => {
+    const module = COURSE_REGISTRY[courseKey]
+    const [lang, course] = courseKey.split('-')
+    const courseInfo = courses.find(c => c.slug === lang)
+    const ids = favorites.listForCourse(courseKey)
+    const chars = module
+      ? ids.map(id => module.characters.find(c => c.id === id)).filter((c): c is ICourseCharacter => !!c)
+      : []
+    return {
+      courseKey,
+      lang,
+      course,
+      langName: t(`courses.${lang}.name`),
+      courseName: t(`courses.${lang}.${course}.title`),
+      flag: courseInfo?.flag,
+      color: courseInfo?.color,
+      chars,
+    }
+  }).filter(g => g.chars.length > 0),
 )
 
 const langStatsList = computed(() =>
-  stats.activeLanguages.map(slug => {
-    const course = courses.find(c => c.slug === slug)
-    const s = stats.getStats(slug)
+  stats.activeCourses.map(courseKey => {
+    const [lang, course] = courseKey.split('-')
+    const courseInfo = courses.find(c => c.slug === lang)
+    const s = stats.getStats(courseKey)
     return {
-      slug,
+      courseKey,
+      lang,
       course,
+      langName: t(`courses.${lang}.name`),
+      courseName: t(`courses.${lang}.${course}.title`),
+      flag: courseInfo?.flag,
+      color: courseInfo?.color,
       ...s,
       accuracy: s.totalAnswered > 0 ? Math.round((s.totalCorrect / s.totalAnswered) * 100) : 0,
     }
@@ -65,7 +100,7 @@ const langStatsList = computed(() =>
       <button
         class="tab" :class="{ 'tab--active': activeTab === 'favorites' }"
         @click="activeTab = 'favorites'"
-      >{{ t('profile.tabFavorites') }} <span class="tab__count">{{ favorites.count }}</span></button>
+      >{{ t('profile.tabFavorites') }} <span class="tab__count">{{ favorites.totalCount }}</span></button>
       <button
         class="tab" :class="{ 'tab--active': activeTab === 'settings' }"
         @click="activeTab = 'settings'"
@@ -104,14 +139,14 @@ const langStatsList = computed(() =>
           {{ t('profile.noLanguages') }}
         </div>
         <div v-else class="lang-list">
-          <div v-for="l in langStatsList" :key="l.slug" class="lang-row">
-            <span class="lang-row__flag">{{ l.course?.flag }}</span>
+          <div v-for="l in langStatsList" :key="l.courseKey" class="lang-row">
+            <span class="lang-row__flag">{{ l.flag }}</span>
             <div class="lang-row__info">
-              <span class="lang-row__name">{{ t(`courses.${l.slug}`) }}</span>
+              <span class="lang-row__name">{{ l.langName }} · {{ l.courseName }}</span>
               <span class="lang-row__meta">{{ l.totalSessions }} sessions · {{ l.accuracy }}% accuracy</span>
             </div>
             <div class="lang-row__bar">
-              <div class="lang-row__fill" :style="{ width: `${l.accuracy}%`, background: l.course?.color }" />
+              <div class="lang-row__fill" :style="{ width: `${l.accuracy}%`, background: l.color }" />
             </div>
           </div>
         </div>
@@ -120,19 +155,20 @@ const langStatsList = computed(() =>
 
     <!-- ── FAVORITES ── -->
     <div v-if="activeTab === 'favorites'" class="tab-content">
-      <section class="card">
+      <section v-if="favoriteGroups.length === 0" class="card">
         <h2 class="card__title">{{ t('profile.favorites') }}</h2>
-        <div v-if="favoriteChars.length === 0" class="empty">
-          {{ t('profile.noFavorites') }}
-        </div>
-        <div v-else class="fav-grid">
+        <div class="empty">{{ t('profile.noFavorites') }}</div>
+      </section>
+      <section v-for="group in favoriteGroups" :key="group.courseKey" class="card">
+        <h2 class="card__title">{{ group.flag }} {{ group.langName }} · {{ group.courseName }}</h2>
+        <div class="fav-grid">
           <NuxtLink
-            v-for="c in favoriteChars" :key="c!.id"
-            :to="`/korean/hangeul/practice/${c!.id}`"
+            v-for="c in group.chars" :key="c.id"
+            :to="`/${group.lang}/${group.course}/practice/${c.id}`"
             class="fav-tile"
           >
-            <span class="fav-tile__char">{{ c!.symbol }}</span>
-            <span class="fav-tile__rom">{{ c!.romanization }}</span>
+            <span class="fav-tile__char">{{ c.symbol }}</span>
+            <span class="fav-tile__rom">{{ c.romanization }}</span>
           </NuxtLink>
         </div>
       </section>
@@ -161,7 +197,7 @@ const langStatsList = computed(() =>
           <div class="setting__label">
             <span>{{ t('profile.language') }}</span>
           </div>
-          <select class="select" :value="locale" @change="setLocale($event.target.value)">
+          <select class="select" :value="locale" @change="setLocale(($event.target as HTMLSelectElement).value as 'en' | 'fr')">
             <option v-for="l in availableLocales" :key="l" :value="l">
               {{ l === 'fr' ? 'Français' : 'English' }}
             </option>

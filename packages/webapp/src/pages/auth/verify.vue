@@ -17,7 +17,6 @@ const code = computed(() => digits.value.join(''))
 const isComplete = computed(() => code.value.length === 6 && /^\d{6}$/.test(code.value))
 
 onMounted(() => {
-  auth.restoreFromStorage()
   if (!auth.pendingIdentifier) navigateTo('/auth/register')
   startCooldown()
 })

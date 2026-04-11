@@ -5,6 +5,12 @@ export default defineNuxtConfig({
   srcDir: 'src/',
   devServer: { port: 5001 },
 
+  // SPA mode — the webapp is wrapped by Tauri, no SEO need.
+  // Disabling SSR lets the auth middleware read the token from localStorage
+  // on first render (otherwise the server has no access to it and would
+  // redirect every reload to /auth/login).
+  ssr: false,
+
   // Nuxt 3.16 monorepo fix:
   // 1. Force all templates to disk so the #build alias can resolve them
   // 2. Add a plugins.mjs shim (SSR entry) so vite-node can resolve #build/plugins
