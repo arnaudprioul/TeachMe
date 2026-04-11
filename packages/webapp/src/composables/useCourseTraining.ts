@@ -23,10 +23,14 @@ export interface ITrainingConfig {
   questionType: QuestionType
   questionLimit: number
   autoSound: boolean
-  includeBasicConsonants: boolean
-  includeDoubleConsonants: boolean
-  includeBasicVowels: boolean
-  includeCompoundVowels: boolean
+  /**
+   * Toggle map keyed by category id (`module.config.categories[].id`).
+   * Missing entries default to `true` so adding a new category to a
+   * course's config doesn't silently disable it for existing sessions.
+   */
+  enabledCategories: Record<string, boolean>
+  /** Include composed syllables in the pool, when the course has a
+   *  syllables composer (Korean only at the moment). */
   includeSyllables: boolean
 }
 
@@ -64,17 +68,16 @@ export interface ITrainingSession {
 
 // ── Defaults / helpers ──
 
-function defaultConfig(): ITrainingConfig {
+function defaultConfig(module?: ICourseModule | null): ITrainingConfig {
+  const enabled: Record<string, boolean> = {}
+  for (const cat of module?.config.categories ?? []) enabled[cat.id] = true
   return {
     mode: 'smart',
     difficulty: 'easy',
     questionType: 'both',
     questionLimit: 20,
     autoSound: true,
-    includeBasicConsonants: true,
-    includeDoubleConsonants: true,
-    includeBasicVowels: true,
-    includeCompoundVowels: true,
+    enabledCategories: enabled,
     includeSyllables: true,
   }
 }
@@ -134,39 +137,6 @@ function jamoToItem(c: ICourseCharacter): ITrainingItem {
   }
 }
 
-/**
- * Build a training item for a vowel that always displays the **canonical
- * written form** of that vowel — i.e. the silent ieung syllable `ㅇ + vowel`.
- *
- * Bare vowels never appear in real Korean writing: a syllable that starts
- * with a vowel sound is always written `아 / 어 / 우 …` with the silent ㅇ
- * placeholder. Showing `ㅏ` or `ㅓ` alone in the quiz teaches the wrong
- * habit, so we wrap each vowel in its ieung syllable form for display.
- *
- * The `id` stays the bare vowel id (so SRS / stats keep tracking the
- * underlying vowel), the `romanization` stays the vowel sound (ieung is
- * silent → no extra letter), only `symbol` is replaced.
- *
- * Returns the wrapped item, or `null` if the module has no syllable
- * composer or no ieung initial — caller should fall back to the bare jamo.
- */
-function vowelToIeungItem(c: ICourseCharacter, m: ICourseModule): ITrainingItem | null {
-  if (!m.syllables) return null
-  const ieungIdx = m.syllables.initials.findIndex(i => i.id === 'ieung')
-  const vowelIdx = m.syllables.medials.findIndex(v => v.id === c.id)
-  if (ieungIdx < 0 || vowelIdx < 0) return null
-  const built = m.syllables.build(ieungIdx, vowelIdx)
-  if (!built.id) return null
-  return {
-    id: c.id,                  // SRS keeps tracking the bare vowel
-    symbol: built.symbol,      // 아 instead of ㅏ
-    romanization: c.romanization,
-    type: 'jamo',
-    jamoType: c.type,
-    jamoSubtype: c.subtype,
-  }
-}
-
 // ── Factory ──
 
 export function createCourseTraining() {
@@ -183,8 +153,19 @@ export function createCourseTraining() {
       session.value = null
       streak.value = 0
       bestStreak.value = 0
-      config.value = defaultConfig()
+      config.value = defaultConfig(module)
     }
+  }
+
+  /**
+   * Resolve a single character to a training item using the course's
+   * `toTrainingItem` hook (e.g. Korean wraps vowels in `ㅇ + vowel`),
+   * falling back to a 1:1 jamo-to-item mapping otherwise.
+   */
+  function characterToItem(ch: ICourseCharacter, m: ICourseModule): ITrainingItem {
+    const custom = m.config.toTrainingItem?.(ch, m)
+    if (custom) return custom as ITrainingItem
+    return jamoToItem(ch)
   }
 
   // Pool of items based on the active module + config
@@ -194,46 +175,41 @@ export function createCourseTraining() {
     const c = config.value
     const items: ITrainingItem[] = []
 
+    // The set of category ids the user has currently checked. A character
+    // is included iff it matches at least one enabled category. Missing
+    // entries in `enabledCategories` are treated as enabled — see
+    // defaultConfig.
+    const isEnabled = (catId: string) => c.enabledCategories[catId] !== false
+    const activeCats = m.config.categories.filter(cat => isEnabled(cat.id))
+
     for (const ch of m.characters) {
-      if (ch.type === 'consonant' && ch.subtype === 'basic' && !c.includeBasicConsonants) continue
-      if (ch.type === 'consonant' && ch.subtype === 'double' && !c.includeDoubleConsonants) continue
-      if (ch.type === 'vowel' && ch.subtype === 'basic' && !c.includeBasicVowels) continue
-      if (ch.type === 'vowel' && ch.subtype === 'compound' && !c.includeCompoundVowels) continue
-      // Vowels are wrapped in their canonical `ㅇ + vowel` syllable form so
-      // the quiz never shows a bare ㅏ / ㅓ / etc. — see vowelToIeungItem.
-      const item = ch.type === 'vowel'
-        ? (vowelToIeungItem(ch, m) ?? jamoToItem(ch))
-        : jamoToItem(ch)
-      items.push(item)
+      const matched = activeCats.some(cat => cat.matches(ch))
+      if (!matched) continue
+      items.push(characterToItem(ch, m))
     }
 
     if (c.includeSyllables && m.syllables) {
-      const consonantIds = new Set<string>()
-      const vowelIds = new Set<string>()
-
-      if (c.includeBasicConsonants || c.includeDoubleConsonants) {
-        for (const ch of m.characters) {
-          if (ch.type !== 'consonant') continue
-          if (ch.subtype === 'basic' && !c.includeBasicConsonants) continue
-          if (ch.subtype === 'double' && !c.includeDoubleConsonants) continue
-          consonantIds.add(ch.id)
-        }
-      } else {
-        // Need at least ieung as a placeholder for vowel-only syllables
-        consonantIds.add('ieung')
-      }
-
+      // Composer-driven syllables (Korean only at the moment). The set of
+      // initials/medials we accept is derived from which character ids
+      // currently belong to an enabled category — that way disabling
+      // "double consonants" naturally drops the matching syllables too.
+      const acceptedConsonantIds = new Set<string>()
+      const acceptedVowelIds = new Set<string>()
       for (const ch of m.characters) {
-        if (ch.type !== 'vowel') continue
-        if (ch.subtype === 'basic' && !c.includeBasicVowels) continue
-        if (ch.subtype === 'compound' && !c.includeCompoundVowels) continue
-        vowelIds.add(ch.id)
+        const matched = activeCats.some(cat => cat.matches(ch))
+        if (!matched) continue
+        if (ch.type === 'consonant') acceptedConsonantIds.add(ch.id)
+        if (ch.type === 'vowel') acceptedVowelIds.add(ch.id)
       }
+      // Always allow ieung as a vowel-only syllable initial, even when
+      // the user has unticked all consonants — otherwise the syllables
+      // section becomes empty for vowel-only training sessions.
+      if (acceptedConsonantIds.size === 0) acceptedConsonantIds.add('ieung')
 
       m.syllables.initials.forEach((cs, ci) => {
-        if (!consonantIds.has(cs.id)) return
+        if (!acceptedConsonantIds.has(cs.id)) return
         m.syllables!.medials.forEach((vs, vi) => {
-          if (!vowelIds.has(vs.id)) return
+          if (!acceptedVowelIds.has(vs.id)) return
           const built = m.syllables!.build(ci, vi)
           if (built.id) {
             items.push({
@@ -297,17 +273,21 @@ export function createCourseTraining() {
       }
     }
 
+    const nonDrawableTypes = activeModule.value?.config.nonDrawableTypes ?? []
     return selected.map((item, i) => {
       let v = sequence[i]
       // Items that don't have matching stroke data for the verifier must be
-      // kept off the canvas-drawing variants:
-      //  - syllables: no per-syllable stroke data exists in the registry.
-      //  - vowels: we display them as `ㅇ + vowel` (canonical written form),
-      //    but only have stroke data for the bare vowel — asking the user
-      //    to draw `아` and verifying against `ㅏ` would always fail.
+      // kept off the canvas-drawing variants. Two reasons an item can be
+      // non-drawable:
+      //  - 'syllable': no per-syllable stroke data in the registry.
+      //  - any course-specific class declared in `config.nonDrawableTypes`
+      //    (Korean lists 'vowel' there because vowels are displayed as
+      //    `ㅇ + vowel` but the verifier only has bare-jamo strokes).
       // Both cases get downgraded to a visual recognition variant.
-      const isVowelJamo = item.type === 'jamo' && item.jamoType === 'vowel'
-      if ((item.type === 'syllable' || isVowelJamo) && v.type === 'writing') {
+      const isNonDrawable =
+        item.type === 'syllable' ||
+        (item.jamoType !== undefined && nonDrawableTypes.includes(item.jamoType))
+      if (isNonDrawable && v.type === 'writing') {
         v = { type: 'recognition', prompt: 'visual' }
       }
       // Distractors must be visually distinct from the target *and* from

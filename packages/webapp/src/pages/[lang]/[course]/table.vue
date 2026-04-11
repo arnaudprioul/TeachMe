@@ -1,70 +1,57 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCourseContext } from '~/composables/useCourseContext'
 
 definePageMeta({ layout: 'default', middleware: 'auth' })
 
 const { t } = useI18n()
-const { lang, language, paths, tKey } = useCourseContext()
+const { lang, language, module, paths, tKey } = useCourseContext()
 
 const course = computed(() => language.value!)
 
-// Choseong (initial consonants) in Unicode order
-const consonants = [
-  { id: 'giyeok', symbol: 'ㄱ', rom: 'g' },
-  { id: 'ssang-giyeok', symbol: 'ㄲ', rom: 'kk' },
-  { id: 'nieun', symbol: 'ㄴ', rom: 'n' },
-  { id: 'digeut', symbol: 'ㄷ', rom: 'd' },
-  { id: 'ssang-digeut', symbol: 'ㄸ', rom: 'tt' },
-  { id: 'rieul', symbol: 'ㄹ', rom: 'r' },
-  { id: 'mieum', symbol: 'ㅁ', rom: 'm' },
-  { id: 'bieup', symbol: 'ㅂ', rom: 'b' },
-  { id: 'ssang-bieup', symbol: 'ㅃ', rom: 'pp' },
-  { id: 'siot', symbol: 'ㅅ', rom: 's' },
-  { id: 'ssang-siot', symbol: 'ㅆ', rom: 'ss' },
-  { id: 'ieung', symbol: 'ㅇ', rom: '—' },
-  { id: 'jieut', symbol: 'ㅈ', rom: 'j' },
-  { id: 'ssang-jieut', symbol: 'ㅉ', rom: 'jj' },
-  { id: 'chieut', symbol: 'ㅊ', rom: 'ch' },
-  { id: 'kieuk', symbol: 'ㅋ', rom: 'k' },
-  { id: 'tieut', symbol: 'ㅌ', rom: 't' },
-  { id: 'pieup', symbol: 'ㅍ', rom: 'p' },
-  { id: 'hieut', symbol: 'ㅎ', rom: 'h' },
-]
+// ── Two rendering modes, picked from the module ────────────────────────
+//
+// 1. **composer-driven matrix** (Korean): the module declares an
+//    `ISyllableComposer`, so we render an `initials × medials` table
+//    with composed syllables in each cell.
+// 2. **flat character grid** (Japanese hiragana / katakana, any course
+//    without a composer): we just render every character as a card,
+//    grouped by category. No fake syllable arithmetic.
+const composer = computed(() => module.value?.syllables ?? null)
+const hasMatrix = computed(() => composer.value !== null)
 
-// Jungseong (medial vowels) in Unicode order
-const vowels = [
-  { id: 'a', symbol: 'ㅏ', rom: 'a' },
-  { id: 'ae', symbol: 'ㅐ', rom: 'ae' },
-  { id: 'ya', symbol: 'ㅑ', rom: 'ya' },
-  { id: 'yae', symbol: 'ㅒ', rom: 'yae' },
-  { id: 'eo', symbol: 'ㅓ', rom: 'eo' },
-  { id: 'e', symbol: 'ㅔ', rom: 'e' },
-  { id: 'yeo', symbol: 'ㅕ', rom: 'yeo' },
-  { id: 'ye', symbol: 'ㅖ', rom: 'ye' },
-  { id: 'o', symbol: 'ㅗ', rom: 'o' },
-  { id: 'wa', symbol: 'ㅘ', rom: 'wa' },
-  { id: 'wae', symbol: 'ㅙ', rom: 'wae' },
-  { id: 'oe', symbol: 'ㅚ', rom: 'oe' },
-  { id: 'yo', symbol: 'ㅛ', rom: 'yo' },
-  { id: 'u', symbol: 'ㅜ', rom: 'u' },
-  { id: 'wo', symbol: 'ㅝ', rom: 'wo' },
-  { id: 'we', symbol: 'ㅞ', rom: 'we' },
-  { id: 'wi', symbol: 'ㅟ', rom: 'wi' },
-  { id: 'yu', symbol: 'ㅠ', rom: 'yu' },
-  { id: 'eu', symbol: 'ㅡ', rom: 'eu' },
-  { id: 'ui', symbol: 'ㅢ', rom: 'ui' },
-  { id: 'i', symbol: 'ㅣ', rom: 'i' },
-]
+// Matrix-mode helpers — each row is an "initial" (e.g. consonant), each
+// column is a "medial" (e.g. vowel). The composer's id arrays are
+// already in the canonical iteration order for the script.
+function buildSyllable(ci: number, vi: number) {
+  return composer.value?.build(ci, vi) ?? { id: '', symbol: '', romanization: '' }
+}
 
-// Generate syllable: consonant index × 588 + vowel index × 28 + 0xAC00
-function syllable(ci: number, vi: number): string {
-  return String.fromCharCode(0xAC00 + ci * 588 + vi * 28)
+// Flat-grid helpers — group the module's characters by their category
+// declarations so the table page mirrors the same hierarchy as the
+// landing page.
+const characterGroups = computed(() => {
+  const m = module.value
+  if (!m) return []
+  return m.config.categories
+    .map(cat => ({
+      id: cat.id,
+      labelKey: cat.labelKey,
+      chars: m.characters.filter(c => cat.matches(c)),
+    }))
+    .filter(g => g.chars.length > 0)
+})
+
+// Resolve a character display label (symbol + romanization) by id, used
+// to render the matrix headers without re-hardcoding the Korean lists.
+function charById(id: string) {
+  return module.value?.characters.find(c => c.id === id)
 }
 </script>
 
 <template>
-  <div class="table-page" :style="{ '--color-course': course.color, '--color-course-subtle': course.colorSubtle }">
+  <div class="table-page" :style="{ '--color-course': course?.color, '--color-course-subtle': course?.colorSubtle }">
     <Breadcrumb :items="[
       { label: t('nav.dashboard'), to: '/dashboard' },
       { label: t(`courses.${lang}.name`), to: paths.languageRoot },
@@ -77,35 +64,67 @@ function syllable(ci: number, vi: number): string {
       <p>{{ t(tKey('section.tableDesc')) }}</p>
     </div>
 
-    <div class="table-wrap">
+    <!-- ═══ MODE 1 — Composer-driven matrix (Korean Hangeul) ═══ -->
+    <div v-if="hasMatrix && composer" class="table-wrap">
       <table class="syllable-table">
         <thead>
           <tr>
             <th class="cell cell--corner" />
-            <th v-for="(v, vi) in vowels" :key="vi" class="cell cell--vowel">
+            <th
+              v-for="(v, vi) in composer.medials"
+              :key="vi"
+              class="cell cell--vowel"
+            >
               <NuxtLink :to="paths.practice(v.id)" class="cell__link">
-                <span class="cell__char">{{ v.symbol }}</span>
+                <span class="cell__char">{{ charById(v.id)?.symbol ?? '' }}</span>
                 <span class="cell__rom">{{ v.rom }}</span>
               </NuxtLink>
             </th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(c, ci) in consonants" :key="ci">
+          <tr v-for="(c, ci) in composer.initials" :key="ci">
             <th class="cell cell--cons">
               <NuxtLink :to="paths.practice(c.id)" class="cell__link">
-                <span class="cell__char">{{ c.symbol }}</span>
-                <span class="cell__rom">{{ c.rom }}</span>
+                <span class="cell__char">{{ charById(c.id)?.symbol ?? '' }}</span>
+                <span class="cell__rom">{{ c.rom || '—' }}</span>
               </NuxtLink>
             </th>
-            <td v-for="(v, vi) in vowels" :key="vi" class="cell cell--syl">
+            <td
+              v-for="(v, vi) in composer.medials"
+              :key="vi"
+              class="cell cell--syl"
+            >
               <NuxtLink :to="paths.syllable(`${c.id}-${v.id}`)" class="cell__syl-link">
-                {{ syllable(ci, vi) }}
+                {{ buildSyllable(ci, vi).symbol }}
               </NuxtLink>
             </td>
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- ═══ MODE 2 — Flat character grid (Japanese kana, any course
+         without a composer) ═══ -->
+    <div v-else class="char-groups">
+      <section
+        v-for="group in characterGroups"
+        :key="group.id"
+        class="char-group"
+      >
+        <h2 class="char-group__title">{{ t(group.labelKey) }} <span class="light">({{ group.chars.length }})</span></h2>
+        <div class="char-group__grid">
+          <NuxtLink
+            v-for="c in group.chars"
+            :key="c.id"
+            :to="paths.practice(c.id)"
+            class="char-tile"
+          >
+            <span class="char-tile__sym">{{ c.symbol }}</span>
+            <span class="char-tile__rom">{{ c.romanization }}</span>
+          </NuxtLink>
+        </div>
+      </section>
     </div>
   </div>
 </template>
@@ -244,5 +263,44 @@ function syllable(ci: number, vi: number): string {
 .cell__syl-link:hover {
   color: var(--color-primary);
   font-weight: 600;
+}
+
+/* ── Flat character grid (no composer) ── */
+.char-groups { display: flex; flex-direction: column; gap: var(--space-8); }
+.char-group { display: flex; flex-direction: column; gap: var(--space-4); }
+.char-group__title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text);
+}
+.char-group__title .light { font-weight: 400; color: var(--color-text-muted); }
+.char-group__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: var(--space-2);
+}
+.char-tile {
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-1);
+  padding: var(--space-3) var(--space-2);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+.char-tile:hover {
+  border-color: var(--color-course, var(--color-border-strong));
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+.char-tile__sym {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1;
+}
+.char-tile__rom {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
 }
 </style>

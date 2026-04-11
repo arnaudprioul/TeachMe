@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCourseData } from '~/composables/useCourseData'
 import { useCourseAudio } from '~/composables/useCourseAudio'
@@ -8,73 +9,61 @@ definePageMeta({ layout: 'default', middleware: 'auth' })
 
 const { t, locale } = useI18n()
 const route = useRoute()
-const { lang, language, paths, tKey } = useCourseContext()
+const { lang, language, module, paths, tKey } = useCourseContext()
 const { getById } = useCourseData()
 const { speak, isSpeaking, isSupported } = useCourseAudio()
 
 const course = computed(() => language.value!)
 
-// Choseong & Jungseong order in Unicode
-const CHOSEONG_IDS = [
-  'giyeok', 'ssang-giyeok', 'nieun', 'digeut', 'ssang-digeut', 'rieul',
-  'mieum', 'bieup', 'ssang-bieup', 'siot', 'ssang-siot', 'ieung',
-  'jieut', 'ssang-jieut', 'chieut', 'kieuk', 'tieut', 'pieup', 'hieut',
-]
-
-const JUNGSEONG_IDS = [
-  'a', 'ae', 'ya', 'yae', 'eo', 'e', 'yeo', 'ye',
-  'o', 'wa', 'wae', 'oe', 'yo', 'u', 'wo', 'we',
-  'wi', 'yu', 'eu', 'ui', 'i',
-]
-
-const CHOSEONG_ROM: Record<string, string> = {
-  'giyeok': 'g', 'ssang-giyeok': 'kk', 'nieun': 'n', 'digeut': 'd',
-  'ssang-digeut': 'tt', 'rieul': 'r', 'mieum': 'm', 'bieup': 'b',
-  'ssang-bieup': 'pp', 'siot': 's', 'ssang-siot': 'ss', 'ieung': '',
-  'jieut': 'j', 'ssang-jieut': 'jj', 'chieut': 'ch', 'kieuk': 'k',
-  'tieut': 't', 'pieup': 'p', 'hieut': 'h',
+// The whole page only makes sense for courses that have a syllable
+// composer (currently Korean). For courses without one, redirect back
+// to the course landing — there's nothing to display.
+function bailIfNoComposer() {
+  if (module.value && !module.value.syllables) {
+    navigateTo(paths.value.root, { replace: true })
+  }
 }
+onMounted(bailIfNoComposer)
+watch(() => module.value?.key, bailIfNoComposer)
 
-// Parse the route id (e.g., "giyeok-a")
+// Parse the route id (e.g. "giyeok-a") via the module's composer.
+// Falls back to null if the module has no composer or the slug is
+// invalid.
 const parsedIds = computed(() => {
   const id = route.params.id as string
-  // Find the consonant that matches the start
-  for (const cId of CHOSEONG_IDS) {
-    if (id.startsWith(cId + '-')) {
-      const vId = id.slice(cId.length + 1)
-      if (JUNGSEONG_IDS.includes(vId)) {
-        return { consonantId: cId, vowelId: vId }
-      }
-    }
-  }
-  return null
+  return module.value?.syllables?.parse(id) ?? null
 })
 
-const consonant = computed(() => parsedIds.value ? getById(parsedIds.value.consonantId) : null)
-const vowel = computed(() => parsedIds.value ? getById(parsedIds.value.vowelId) : null)
+const consonant = computed(() => parsedIds.value ? getById(parsedIds.value.initialId) : null)
+const vowel = computed(() => parsedIds.value ? getById(parsedIds.value.medialId) : null)
 
-// Build the syllable from Unicode
-const syllable = computed(() => {
-  if (!parsedIds.value) return ''
-  const ci = CHOSEONG_IDS.indexOf(parsedIds.value.consonantId)
-  const vi = JUNGSEONG_IDS.indexOf(parsedIds.value.vowelId)
-  if (ci < 0 || vi < 0) return ''
-  return String.fromCharCode(0xAC00 + ci * 588 + vi * 28)
+// Build the composed syllable + its romanization via the composer too
+// — no more hardcoded Hangeul Unicode arithmetic.
+const built = computed(() => {
+  const m = module.value
+  const p = parsedIds.value
+  if (!m?.syllables || !p) return null
+  const ci = m.syllables.initials.findIndex(i => i.id === p.initialId)
+  const vi = m.syllables.medials.findIndex(v => v.id === p.medialId)
+  if (ci < 0 || vi < 0) return null
+  return m.syllables.build(ci, vi)
 })
 
-const romanization = computed(() => {
-  if (!parsedIds.value || !vowel.value) return ''
-  const cRom = CHOSEONG_ROM[parsedIds.value.consonantId] ?? ''
-  return cRom + vowel.value.romanization
-})
+const syllable = computed(() => built.value?.symbol ?? '')
+const romanization = computed(() => built.value?.romanization ?? '')
 
-// Layout description (vertical vs horizontal vowel)
+// Layout hint for the block diagram. Vowels whose canonical position is
+// *below* the initial consonant (Hangeul: ㅗㅛㅜㅠㅡ + their composed
+// forms) get the "horizontal" layout, vertical otherwise. Hardcoded for
+// Korean for now — if other CJK courses ever ship a composer they can
+// expose their own layout map via the module config.
+const HORIZONTAL_VOWELS = new Set([
+  'o', 'yo', 'u', 'yu', 'eu', 'wa', 'wae', 'oe', 'wo', 'we', 'wi', 'ui',
+])
 const layout = computed(() => {
-  const v = parsedIds.value?.vowelId
-  if (!v) return 'cv'
-  // Horizontal vowels (placed below): ㅗ ㅛ ㅜ ㅠ ㅡ + composed
-  const horizontal = ['o', 'yo', 'u', 'yu', 'eu', 'wa', 'wae', 'oe', 'wo', 'we', 'wi', 'ui']
-  return horizontal.includes(v) ? 'horizontal' : 'vertical'
+  const v = parsedIds.value?.medialId
+  if (!v) return 'vertical'
+  return HORIZONTAL_VOWELS.has(v) ? 'horizontal' : 'vertical'
 })
 </script>
 

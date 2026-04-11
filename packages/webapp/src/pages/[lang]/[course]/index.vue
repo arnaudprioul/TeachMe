@@ -1,19 +1,83 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useCourseData } from '~/composables/useCourseData'
 import { useCourseContext } from '~/composables/useCourseContext'
+import type { ICourseCharacter } from '~/composables/data/courses/types'
 
 definePageMeta({ layout: 'default', middleware: 'auth' })
 
 const { t } = useI18n()
-const { lang, language, paths, tKey } = useCourseContext()
-const { basicConsonants, doubleConsonants, basicVowels, compoundVowels } = useCourseData()
+const { lang, language, module, paths, tKey } = useCourseContext()
 
 const course = computed(() => language.value!)
+
+// ── Landing-page section flags (each section is rendered iff its flag
+//    on the course config is true). Default false so a brand-new course
+//    that doesn't opt in stays minimal. ────────────────────────────────
+const cfg = computed(() => module.value?.config)
+const hasOriginStory          = computed(() => cfg.value?.hasOriginStory          === true)
+const hasCosmology            = computed(() => cfg.value?.hasCosmology            === true)
+const hasSilentInitialRule    = computed(() => cfg.value?.hasSilentInitialRule    === true)
+const hasSyllableComposition  = computed(() => cfg.value?.hasSyllableComposition  === true)
+const hasSyllableTable        = computed(() => !!module.value?.syllables)
+
+// ── Character categories drive the listing sections. Each course
+//    declares its own categories in `module.config.categories`, so
+//    Korean shows 4 sections (basic/double consonants + basic/compound
+//    vowels) while Japanese hiragana shows 2 (vowels + gojuon). ───────
+interface ISectionGroup {
+  id: string
+  labelKey: string
+  chars: ICourseCharacter[]
+}
+
+const characterSections = computed<ISectionGroup[]>(() => {
+  const m = module.value
+  if (!m) return []
+  return m.config.categories
+    .map(cat => ({
+      id: cat.id,
+      labelKey: cat.labelKey,
+      chars: m.characters.filter(c => cat.matches(c)),
+    }))
+    .filter(g => g.chars.length > 0)
+})
+
+// ── Hero cloud: pick a deterministic-but-scattered sample of
+//    characters from the active module so the floating background
+//    feels alive without being random per refresh. ───────────────────
+const HERO_CLOUD_SLOTS = [
+  { x: '10%', y: '8%',  s: '2.8rem', d: '0s',   o: 0.9  },
+  { x: '55%', y: '5%',  s: '2rem',   d: '0.5s', o: 0.5  },
+  { x: '80%', y: '15%', s: '3.2rem', d: '1.1s', o: 0.8  },
+  { x: '25%', y: '30%', s: '3.5rem', d: '0.3s', o: 1    },
+  { x: '65%', y: '35%', s: '2.2rem', d: '1.8s', o: 0.45 },
+  { x: '5%',  y: '55%', s: '2rem',   d: '0.8s', o: 0.55 },
+  { x: '45%', y: '55%', s: '4rem',   d: '1.4s', o: 0.85 },
+  { x: '85%', y: '50%', s: '2.5rem', d: '0.2s', o: 0.6  },
+  { x: '30%', y: '72%', s: '2rem',   d: '1s',   o: 0.4  },
+  { x: '70%', y: '75%', s: '3rem',   d: '1.6s', o: 0.7  },
+  { x: '15%', y: '85%', s: '2.5rem', d: '0.6s', o: 0.5  },
+  { x: '50%', y: '88%', s: '2rem',   d: '1.2s', o: 0.35 },
+  { x: '90%', y: '82%', s: '2.2rem', d: '0.9s', o: 0.55 },
+  { x: '40%', y: '15%', s: '1.8rem', d: '2s',   o: 0.3  },
+]
+
+const heroCloud = computed(() => {
+  const chars = module.value?.characters ?? []
+  if (chars.length === 0) return []
+  return HERO_CLOUD_SLOTS.map((slot, i) => ({
+    ...slot,
+    // Coprime stride so consecutive slots pick non-adjacent characters
+    // even on small alphabets — for Hangeul (40 chars) this gives a
+    // visually scattered cloud, for hiragana (46) idem.
+    symbol: chars[(i * 7 + 3) % chars.length]?.symbol ?? '',
+  }))
+})
 </script>
 
 <template>
-  <div class="lp" :style="{ '--cc': course.color, '--cc-s': course.colorSubtle }">
+  <div class="lp" :style="{ '--cc': course?.color, '--cc-s': course?.colorSubtle }">
 
     <div class="contained bc-row">
       <Breadcrumb :items="[
@@ -27,39 +91,37 @@ const course = computed(() => language.value!)
     <section class="hero">
       <div class="hero__inner">
         <div class="hero__text">
-          <span class="hero__pill">{{ course.flag }} {{ t(`courses.${lang}.name`) }}</span>
+          <span class="hero__pill">{{ course?.flag }} {{ t(`courses.${lang}.name`) }}</span>
           <h1>{{ t(tKey('title')) }}</h1>
           <p>{{ t(tKey('desc')) }}</p>
           <div class="hero__actions">
-            <NuxtLink :to="paths.table" class="hero__ghost">{{ t(tKey('section.tableTitle')) }}</NuxtLink>
+            <NuxtLink v-if="hasSyllableTable" :to="paths.table" class="hero__ghost">{{ t(tKey('section.tableTitle')) }}</NuxtLink>
             <NuxtLink :to="paths.training" class="hero__cta">{{ t(tKey('training')) }}</NuxtLink>
           </div>
         </div>
 
         <div class="hero__cloud" aria-hidden="true">
-          <span class="jamo" style="--x:10%;--y:8%;--s:2.8rem;--d:0s;--o:0.9">ㄱ</span>
-          <span class="jamo" style="--x:55%;--y:5%;--s:2rem;--d:0.5s;--o:0.5">ㅏ</span>
-          <span class="jamo" style="--x:80%;--y:15%;--s:3.2rem;--d:1.1s;--o:0.8">ㅎ</span>
-          <span class="jamo" style="--x:25%;--y:30%;--s:3.5rem;--d:0.3s;--o:1">ㅗ</span>
-          <span class="jamo" style="--x:65%;--y:35%;--s:2.2rem;--d:1.8s;--o:0.45">ㄴ</span>
-          <span class="jamo" style="--x:5%;--y:55%;--s:2rem;--d:0.8s;--o:0.55">ㅡ</span>
-          <span class="jamo" style="--x:45%;--y:55%;--s:4rem;--d:1.4s;--o:0.85">ㅣ</span>
-          <span class="jamo" style="--x:85%;--y:50%;--s:2.5rem;--d:0.2s;--o:0.6">ㅂ</span>
-          <span class="jamo" style="--x:30%;--y:72%;--s:2rem;--d:1s;--o:0.4">ㅈ</span>
-          <span class="jamo" style="--x:70%;--y:75%;--s:3rem;--d:1.6s;--o:0.7">ㅁ</span>
-          <span class="jamo" style="--x:15%;--y:85%;--s:2.5rem;--d:0.6s;--o:0.5">ㅓ</span>
-          <span class="jamo" style="--x:50%;--y:88%;--s:2rem;--d:1.2s;--o:0.35">ㄹ</span>
-          <span class="jamo" style="--x:90%;--y:82%;--s:2.2rem;--d:0.9s;--o:0.55">ㅅ</span>
-          <span class="jamo" style="--x:40%;--y:15%;--s:1.8rem;--d:2s;--o:0.3">ㅜ</span>
+          <span
+            v-for="(slot, i) in heroCloud"
+            :key="i"
+            class="jamo"
+            :style="{
+              '--x': slot.x,
+              '--y': slot.y,
+              '--s': slot.s,
+              '--d': slot.d,
+              '--o': String(slot.o),
+            }"
+          >{{ slot.symbol }}</span>
         </div>
       </div>
     </section>
 
-    <!-- ════════ STORY — editorial ════════ -->
-    <section class="story" id="story">
+    <!-- ════════ ORIGIN STORY (Korean: King Sejong) ════════ -->
+    <section v-if="hasOriginStory" class="story" id="story">
       <div class="story__inner contained">
         <div class="story__lead">
-          <span class="story__eyebrow">1443 — King Sejong the Great</span>
+          <span class="story__eyebrow">{{ t(tKey('section.introEyebrow')) }}</span>
           <h2>{{ t(tKey('section.introP1')).split('.')[0] }}.</h2>
         </div>
         <div class="story__cols">
@@ -73,84 +135,80 @@ const course = computed(() => language.value!)
       </div>
     </section>
 
-    <!-- ════════ QUOTE — full-width ════════ -->
-    <section class="quote-section">
+    <!-- ════════ ORIGIN QUOTE ════════ -->
+    <section v-if="hasOriginStory" class="quote-section">
       <div class="quote-section__inner contained">
         <div class="quote-section__mark" aria-hidden="true">"</div>
         <blockquote>
           <p>{{ t(tKey('section.introP3')) }}</p>
         </blockquote>
         <div class="quote-section__tag">
-          <span class="quote-section__hanja">훈민정음</span>
-          <span>Hunminjeongeum, 1446</span>
+          <span class="quote-section__hanja">{{ t(tKey('section.introQuoteSource')) }}</span>
+          <span>{{ t(tKey('section.introQuoteSourceLatin')) }}</span>
         </div>
       </div>
     </section>
 
-    <!-- ════════ JAMO SHAPES — full-width grey, contained content ════════ -->
-    <section class="band band--muted">
-      <div class="contained">
-        <span class="chip chip--cool">{{ t(tKey('section.jamoTitle')) }}</span>
-        <h2 class="band__title">{{ t(tKey('section.jamoConsonantTitle')) }}</h2>
-        <p class="band__sub">{{ t(tKey('section.jamoP1')) }}</p>
+    <!-- ════════ COSMOLOGY (Korean only) ════════ -->
+    <template v-if="hasCosmology">
+      <section class="band band--muted">
+        <div class="contained">
+          <span class="chip chip--cool">{{ t(tKey('section.jamoTitle')) }}</span>
+          <h2 class="band__title">{{ t(tKey('section.jamoConsonantTitle')) }}</h2>
+          <p class="band__sub">{{ t(tKey('section.jamoP1')) }}</p>
 
-        <div class="shape-row">
-          <div class="shape-pill" v-for="item in t(tKey('section.jamoConsonantList')).split(' | ')" :key="item">
-            <span class="shape-pill__char">{{ item.split(' ')[0] }}</span>
-            <span class="shape-pill__text">{{ item.split(': ').slice(1).join(': ') }}</span>
+          <div class="shape-row">
+            <div class="shape-pill" v-for="item in t(tKey('section.jamoConsonantList')).split(' | ')" :key="item">
+              <span class="shape-pill__char">{{ item.split(' ')[0] }}</span>
+              <span class="shape-pill__text">{{ item.split(': ').slice(1).join(': ') }}</span>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- ════════ COSMOLOGY — contained, 3 cards ════════ -->
-    <section class="contained cosmo">
-      <h2>{{ t(tKey('section.jamoCosmologyTitle')) }}</h2>
-      <p class="cosmo__sub">{{ t(tKey('section.jamoCosmologyP1')) }}</p>
+      <section class="contained cosmo">
+        <h2>{{ t(tKey('section.jamoCosmologyTitle')) }}</h2>
+        <p class="cosmo__sub">{{ t(tKey('section.jamoCosmologyP1')) }}</p>
 
-      <div class="cosmo__grid">
-        <div class="cosmo__card cosmo__card--sky">
-          <span class="cosmo__sym">·</span>
-          <span class="cosmo__label">{{ t(tKey('section.jamoCosmologyHeaven')) }}</span>
+        <div class="cosmo__grid">
+          <div class="cosmo__card cosmo__card--sky">
+            <span class="cosmo__sym">·</span>
+            <span class="cosmo__label">{{ t(tKey('section.jamoCosmologyHeaven')) }}</span>
+          </div>
+          <div class="cosmo__card cosmo__card--earth">
+            <span class="cosmo__sym">ㅡ</span>
+            <span class="cosmo__label">{{ t(tKey('section.jamoCosmologyEarth')) }}</span>
+          </div>
+          <div class="cosmo__card cosmo__card--human">
+            <span class="cosmo__sym">ㅣ</span>
+            <span class="cosmo__label">{{ t(tKey('section.jamoCosmologyHuman')) }}</span>
+          </div>
         </div>
-        <div class="cosmo__card cosmo__card--earth">
-          <span class="cosmo__sym">ㅡ</span>
-          <span class="cosmo__label">{{ t(tKey('section.jamoCosmologyEarth')) }}</span>
+
+        <div class="eq-row">
+          <span class="eq">ㅣ + · = <strong>ㅏ</strong> <small>(a)</small></span>
+          <span class="eq">· + ㅣ = <strong>ㅓ</strong> <small>(eo)</small></span>
+          <span class="eq">· + ㅡ = <strong>ㅗ</strong> <small>(o)</small></span>
+          <span class="eq">ㅡ + · = <strong>ㅜ</strong> <small>(u)</small></span>
         </div>
-        <div class="cosmo__card cosmo__card--human">
-          <span class="cosmo__sym">ㅣ</span>
-          <span class="cosmo__label">{{ t(tKey('section.jamoCosmologyHuman')) }}</span>
-        </div>
-      </div>
+      </section>
+    </template>
 
-      <div class="eq-row">
-        <span class="eq">ㅣ + · = <strong>ㅏ</strong> <small>(a)</small></span>
-        <span class="eq">· + ㅣ = <strong>ㅓ</strong> <small>(eo)</small></span>
-        <span class="eq">· + ㅡ = <strong>ㅗ</strong> <small>(o)</small></span>
-        <span class="eq">ㅡ + · = <strong>ㅜ</strong> <small>(u)</small></span>
-      </div>
-    </section>
-
-    <!-- ════════ CONSONANTS — full-width warm band, cards ════════ -->
-    <section class="band band--warm">
-      <div class="contained">
-        <span class="chip chip--warm">{{ t(tKey('section.consonantsTitle')) }}</span>
-        <h2 class="band__title">{{ t(tKey('basicConsonants')) }} <span class="light">({{ basicConsonants.length }})</span></h2>
-        <p class="band__sub">{{ t(tKey('section.consonantsIntro')) }}</p>
-
+    <!-- ════════ CHARACTER SECTIONS — generic, one section per category ════════ -->
+    <section
+      v-for="(group, idx) in characterSections"
+      :key="group.id"
+      :class="['char-section', idx % 2 === 0 ? 'band band--warm' : 'contained']"
+    >
+      <div :class="idx % 2 === 0 ? 'contained' : ''">
+        <span class="chip" :class="idx % 2 === 0 ? 'chip--warm' : 'chip--cool'">{{ t(group.labelKey) }}</span>
+        <h2 class="band__title">
+          {{ t(group.labelKey) }}
+          <span class="light">({{ group.chars.length }})</span>
+        </h2>
         <div class="char-cards">
-          <NuxtLink v-for="c in basicConsonants" :key="c.id" :to="paths.practice(c.id)" class="cc">
-            <span class="cc__sym" :style="{ color: course.color }">{{ c.symbol }}</span>
-            <span class="cc__rom">{{ c.romanization }}</span>
-            <span class="cc__name">{{ c.name }}</span>
-          </NuxtLink>
-        </div>
-
-        <h3 class="mt">{{ t(tKey('doubleConsonants')) }} <span class="light">({{ doubleConsonants.length }})</span></h3>
-        <p class="band__sub">{{ t(tKey('section.doubleConsonantsIntro')) }}</p>
-        <div class="char-cards char-cards--sm">
-          <NuxtLink v-for="c in doubleConsonants" :key="c.id" :to="paths.practice(c.id)" class="cc">
-            <span class="cc__sym" :style="{ color: course.color }">{{ c.symbol }}</span>
+          <NuxtLink v-for="c in group.chars" :key="c.id" :to="paths.practice(c.id)" class="cc">
+            <span class="cc__sym" :style="{ color: course?.color }">{{ c.symbol }}</span>
             <span class="cc__rom">{{ c.romanization }}</span>
             <span class="cc__name">{{ c.name }}</span>
           </NuxtLink>
@@ -158,33 +216,8 @@ const course = computed(() => language.value!)
       </div>
     </section>
 
-    <!-- ════════ VOWELS — contained, clean white ════════ -->
-    <section class="contained vowels-section">
-      <span class="chip chip--cool">{{ t(tKey('section.vowelsTitle')) }}</span>
-      <h2>{{ t(tKey('basicVowels')) }} <span class="light">({{ basicVowels.length }})</span></h2>
-      <p class="section-intro">{{ t(tKey('section.vowelsIntro')) }}</p>
-
-      <div class="char-cards">
-        <NuxtLink v-for="c in basicVowels" :key="c.id" :to="paths.practice(c.id)" class="cc">
-          <span class="cc__sym" style="color: var(--color-primary)">{{ c.symbol }}</span>
-          <span class="cc__rom">{{ c.romanization }}</span>
-          <span class="cc__name">{{ c.name }}</span>
-        </NuxtLink>
-      </div>
-
-      <h3 class="mt">{{ t(tKey('compoundVowels')) }} <span class="light">({{ compoundVowels.length }})</span></h3>
-      <p class="section-intro">{{ t(tKey('section.compoundVowelsIntro')) }}</p>
-      <div class="char-cards char-cards--sm">
-        <NuxtLink v-for="c in compoundVowels" :key="c.id" :to="paths.practice(c.id)" class="cc">
-          <span class="cc__sym" style="color: var(--color-primary)">{{ c.symbol }}</span>
-          <span class="cc__rom">{{ c.romanization }}</span>
-          <span class="cc__name">{{ c.name }}</span>
-        </NuxtLink>
-      </div>
-    </section>
-
-    <!-- ════════ SILENT ㅇ RULE — full-width indigo band ════════ -->
-    <section class="band band--indigo">
+    <!-- ════════ SILENT ㅇ RULE (Korean only) ════════ -->
+    <section v-if="hasSilentInitialRule" class="band band--indigo">
       <div class="rule-demo">
         <span class="rule-demo__c">ㅇ</span>
         <span class="rule-demo__op">+</span>
@@ -195,8 +228,8 @@ const course = computed(() => language.value!)
       <p class="rule-demo__text">{{ t(tKey('section.silentIeungRule')) }}</p>
     </section>
 
-    <!-- ════════ SYLLABLES — contained, split visual/text (reversed) ════════ -->
-    <section class="contained split split--rev">
+    <!-- ════════ SYLLABLE COMPOSITION (Korean only) ════════ -->
+    <section v-if="hasSyllableComposition" class="contained split split--rev">
       <div class="split__text">
         <span class="chip chip--green">{{ t(tKey('section.syllablesTitle')) }}</span>
         <h2>{{ t(tKey('section.syllablesIntro')).split(':')[0] }}</h2>
@@ -214,12 +247,12 @@ const course = computed(() => language.value!)
       </div>
     </section>
 
-    <!-- ════════ CTAs — Full table + Training ════════ -->
+    <!-- ════════ CTAs — Table (only if course has a syllable composer) + Training ════════ -->
     <section class="cta-section">
       <div class="contained cta-grid">
-        <NuxtLink :to="paths.table" class="cta">
+        <NuxtLink v-if="hasSyllableTable" :to="paths.table" class="cta">
           <div class="cta__mosaic" aria-hidden="true">
-            <span v-for="c in ['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ','ㅏ','ㅓ']" :key="c">{{ c }}</span>
+            <span v-for="(slot, i) in heroCloud.slice(0, 16)" :key="i">{{ slot.symbol }}</span>
           </div>
           <div class="cta__body">
             <h3>{{ t(tKey('section.tableTitle')) }}</h3>
