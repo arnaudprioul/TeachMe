@@ -100,11 +100,16 @@ export type ToTrainingItemFn = (
 // the obvious example — 5 vowel columns × 11 consonant rows, with a
 // few empty cells (やゆよ has no い/え, わをん is mostly empty…).
 //
-// A course can declare this layout statically here. The table page
-// will render it as an HTML grid. Cells reference character ids;
+// A course can declare *one or more* layouts statically here. The
+// table page will render each one as a separate HTML grid (gojuon /
+// dakuten / yōon, for example). Cells reference character ids;
 // `null` means "no character at this intersection" (rendered as a
 // blank cell, no link).
 export interface ICourseTableGrid {
+  /** Optional locale key for the section title shown above the grid
+   *  (e.g. `courses.japanese.hiragana.gojuon`). Used when a course
+   *  ships multiple grids and we want each one labeled. */
+  titleKey?: string
   /** Optional header row labels (e.g. `['a','i','u','e','o']`).
    *  Rendered as plain text — they're not character ids. */
   columnHeaders?: string[]
@@ -134,11 +139,14 @@ export interface ICourseConfig {
    *  in their displayed form). Match is on `jamoType`. */
   nonDrawableTypes?: string[]
 
-  // Optional static grid layout for the /[lang]/[course]/table page.
+  // Optional static grid layouts for the /[lang]/[course]/table page.
   // Used by courses that don't have a syllables composer but still have
   // a canonical 2D arrangement of their characters (e.g. Japanese
-  // gojuon). Korean ignores this and uses the composer instead.
-  tableGrid?: ICourseTableGrid
+  // gojuon, dakuten, yōon — three separate grids). Korean ignores this
+  // and uses the composer instead. A course can declare a single grid
+  // or several; the table page renders each as its own labelled
+  // section.
+  tableGrids?: ICourseTableGrid[]
 
   // Landing page sections (each is rendered iff its flag is true).
   /** "1443 — King Sejong" / Hunminjeongeum-style origin story block. */

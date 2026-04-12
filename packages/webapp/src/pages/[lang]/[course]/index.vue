@@ -20,10 +20,12 @@ const hasCosmology            = computed(() => cfg.value?.hasCosmology          
 const hasSilentInitialRule    = computed(() => cfg.value?.hasSilentInitialRule    === true)
 const hasSyllableComposition  = computed(() => cfg.value?.hasSyllableComposition  === true)
 // The "Full Table" CTA is shown whenever the table page has *something*
-// to render — either a syllables composer (Korean matrix) or a static
-// `tableGrid` declared in the config (Japanese gojuon).
+// to render — either a syllables composer (Korean matrix) or one or
+// more static grids declared in the config (Japanese gojuon, dakuten,
+// yōon).
 const hasSyllableTable        = computed(() =>
-  !!module.value?.syllables || !!cfg.value?.tableGrid,
+  !!module.value?.syllables
+  || (!!cfg.value?.tableGrids && cfg.value.tableGrids.length > 0),
 )
 
 // ── Character categories drive the listing sections. Each course

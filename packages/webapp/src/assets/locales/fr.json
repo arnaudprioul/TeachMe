@@ -39,6 +39,7 @@
       "hangeul": {
         "title": "Hangeul",
         "desc": "Apprends les 40 caractères, l'ordre des traits et la prononciation.",
+        "about": "Jamo",
         "training": "Entraînement",
         "trainingDesc": "Entraîne-toi avec des exercices interactifs.",
         "basicConsonants": "Consonnes de base",
@@ -114,7 +115,9 @@
           "phonetics": "Phonétique",
           "soundsLike": "Ressemble à",
           "mouthDesc": "Position de la bouche",
-          "tip": "Astuce"
+          "tip": "Astuce",
+          "charName": "Nom",
+          "charKind": "Type"
         }
       }
     },
@@ -124,10 +127,13 @@
       "hiragana": {
         "title": "Hiragana",
         "desc": "Maîtrise les 46 kana phonétiques — le premier alphabet japonais à apprendre.",
+        "about": "À propos de ce kana",
         "training": "Entraînement",
         "trainingDesc": "Entraîne-toi avec des exercices interactifs.",
         "vowels": "Voyelles",
         "gojuon": "Gojuon",
+        "dakuten": "Dakuten & Handakuten",
+        "yoon": "Yōon",
         "charType_consonant": "Mora",
         "charType_vowel": "Voyelle",
         "charSubtype_basic": "De base",
@@ -160,16 +166,21 @@
           "phonetics": "Phonétique",
           "soundsLike": "Ressemble à",
           "mouthDesc": "Position de la bouche",
-          "tip": "Astuce"
+          "tip": "Astuce",
+          "charName": "Nom",
+          "charKind": "Type"
         }
       },
       "katakana": {
         "title": "Katakana",
         "desc": "Les 46 kana anguleux utilisés pour les mots étrangers, les noms et l'emphase.",
+        "about": "À propos de ce kana",
         "training": "Entraînement",
         "trainingDesc": "Entraîne-toi avec des exercices interactifs.",
         "vowels": "Voyelles",
         "gojuon": "Gojuon",
+        "dakuten": "Dakuten & Handakuten",
+        "yoon": "Yōon",
         "charType_consonant": "Mora",
         "charType_vowel": "Voyelle",
         "charSubtype_basic": "De base",
@@ -202,7 +213,9 @@
           "phonetics": "Phonétique",
           "soundsLike": "Ressemble à",
           "mouthDesc": "Position de la bouche",
-          "tip": "Astuce"
+          "tip": "Astuce",
+          "charName": "Nom",
+          "charKind": "Type"
         }
       }
     },

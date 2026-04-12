@@ -39,6 +39,7 @@
       "hangeul": {
         "title": "Hangeul",
         "desc": "Learn all 40 characters, stroke order and pronunciation.",
+        "about": "Jamo",
         "training": "Training",
         "trainingDesc": "Practice with interactive exercises.",
         "basicConsonants": "Basic consonants",
@@ -114,7 +115,9 @@
           "phonetics": "Phonetics",
           "soundsLike": "Sounds like",
           "mouthDesc": "Mouth position",
-          "tip": "Tip"
+          "tip": "Tip",
+          "charName": "Name",
+          "charKind": "Kind"
         }
       }
     },
@@ -124,10 +127,13 @@
       "hiragana": {
         "title": "Hiragana",
         "desc": "Master the 46 phonetic kana — the first script every Japanese learner needs.",
+        "about": "About this kana",
         "training": "Training",
         "trainingDesc": "Practice with interactive exercises.",
         "vowels": "Vowels",
         "gojuon": "Gojuon",
+        "dakuten": "Dakuten & Handakuten",
+        "yoon": "Yōon",
         "charType_consonant": "Mora",
         "charType_vowel": "Vowel",
         "charSubtype_basic": "Basic",
@@ -160,16 +166,21 @@
           "phonetics": "Phonetics",
           "soundsLike": "Sounds like",
           "mouthDesc": "Mouth position",
-          "tip": "Tip"
+          "tip": "Tip",
+          "charName": "Name",
+          "charKind": "Kind"
         }
       },
       "katakana": {
         "title": "Katakana",
         "desc": "The 46 angular kana used for loanwords, names and emphasis.",
+        "about": "About this kana",
         "training": "Training",
         "trainingDesc": "Practice with interactive exercises.",
         "vowels": "Vowels",
         "gojuon": "Gojuon",
+        "dakuten": "Dakuten & Handakuten",
+        "yoon": "Yōon",
         "charType_consonant": "Mora",
         "charType_vowel": "Vowel",
         "charSubtype_basic": "Basic",
@@ -202,7 +213,9 @@
           "phonetics": "Phonetics",
           "soundsLike": "Sounds like",
           "mouthDesc": "Mouth position",
-          "tip": "Tip"
+          "tip": "Tip",
+          "charName": "Name",
+          "charKind": "Kind"
         }
       }
     },

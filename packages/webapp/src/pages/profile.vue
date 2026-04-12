@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '~/stores/auth.store'
 import { useStatsStore } from '~/stores/stats.store'
@@ -12,13 +12,36 @@ import type { ICourseCharacter } from '~/composables/data/courses/types'
 definePageMeta({ layout: 'default', middleware: 'auth' })
 
 const { t, locale, setLocale, availableLocales } = useI18n()
+const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 const stats = useStatsStore()
 const favorites = useFavoritesStore()
 const { mode, setTheme } = useTheme()
 const { courses } = useCourses()
 
-const activeTab = ref<'overview' | 'favorites' | 'settings'>('overview')
+type ProfileTab = 'overview' | 'favorites' | 'settings'
+const VALID_TABS: ProfileTab[] = ['overview', 'favorites', 'settings']
+
+function tabFromQuery(): ProfileTab {
+  const q = route.query.tab as string | undefined
+  return q && VALID_TABS.includes(q as ProfileTab) ? (q as ProfileTab) : 'overview'
+}
+
+const activeTab = ref<ProfileTab>(tabFromQuery())
+
+// Keep the URL query in sync with the active tab so deep-links work
+// both ways: ?tab=settings opens the settings tab, and clicking a tab
+// updates the URL without a full navigation.
+watch(activeTab, (tab) => {
+  const query = tab === 'overview' ? {} : { tab }
+  router.replace({ query })
+})
+
+// Also react if the route query changes externally (browser back/forward)
+watch(() => route.query.tab, () => {
+  activeTab.value = tabFromQuery()
+})
 
 const userInitial = computed(() => auth.user?.username?.[0]?.toUpperCase() ?? '?')
 

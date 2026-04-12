@@ -22,6 +22,7 @@ mkdir -p "$HIRAGANA_DIR" "$KATAKANA_DIR"
 # the gojuon ordering used by characters.ts, so the directory listing
 # stays in the canonical order.
 HIRAGANA=(
+  # Gojuon (46 base)
   "01 a    3042" "02 i    3044" "03 u    3046" "04 e    3048" "05 o    304a"
   "06 ka   304b" "07 ki   304d" "08 ku   304f" "09 ke   3051" "10 ko   3053"
   "11 sa   3055" "12 shi  3057" "13 su   3059" "14 se   305b" "15 so   305d"
@@ -32,9 +33,17 @@ HIRAGANA=(
   "36 ya   3084" "37 yu   3086" "38 yo   3088"
   "39 ra   3089" "40 ri   308a" "41 ru   308b" "42 re   308c" "43 ro   308d"
   "44 wa   308f" "45 wo   3092" "46 n    3093"
+  # Dakuten (20 voiced)
+  "47 ga   304c" "48 gi   304e" "49 gu   3050" "50 ge   3052" "51 go   3054"
+  "52 za   3056" "53 ji   3058" "54 zu   305a" "55 ze   305c" "56 zo   305e"
+  "57 da   3060" "58 dji  3062" "59 dzu  3065" "60 de   3067" "61 do   3069"
+  "62 ba   3070" "63 bi   3073" "64 bu   3076" "65 be   3079" "66 bo   307c"
+  # Handakuten (5 semi-voiced)
+  "67 pa   3071" "68 pi   3074" "69 pu   3077" "70 pe   307a" "71 po   307d"
 )
 
 KATAKANA=(
+  # Gojuon (46 base)
   "01 a    30a2" "02 i    30a4" "03 u    30a6" "04 e    30a8" "05 o    30aa"
   "06 ka   30ab" "07 ki   30ad" "08 ku   30af" "09 ke   30b1" "10 ko   30b3"
   "11 sa   30b5" "12 shi  30b7" "13 su   30b9" "14 se   30bb" "15 so   30bd"
@@ -45,6 +54,13 @@ KATAKANA=(
   "36 ya   30e4" "37 yu   30e6" "38 yo   30e8"
   "39 ra   30e9" "40 ri   30ea" "41 ru   30eb" "42 re   30ec" "43 ro   30ed"
   "44 wa   30ef" "45 wo   30f2" "46 n    30f3"
+  # Dakuten (20 voiced)
+  "47 ga   30ac" "48 gi   30ae" "49 gu   30b0" "50 ge   30b2" "51 go   30b4"
+  "52 za   30b6" "53 ji   30b8" "54 zu   30ba" "55 ze   30bc" "56 zo   30be"
+  "57 da   30c0" "58 dji  30c2" "59 dzu  30c5" "60 de   30c7" "61 do   30c9"
+  "62 ba   30d0" "63 bi   30d3" "64 bu   30d6" "65 be   30d9" "66 bo   30dc"
+  # Handakuten (5 semi-voiced)
+  "67 pa   30d1" "68 pi   30d4" "69 pu   30d7" "70 pe   30da" "71 po   30dd"
 )
 
 fetch_one() {

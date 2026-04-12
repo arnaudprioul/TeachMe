@@ -163,29 +163,40 @@ watch(next, (n) => {
             </div>
           </section>
 
-          <!-- ── Mouth position ── -->
-          <section class="card">
+          <!-- ── Mouth position — only when the character carries an
+               articulation place. Kana don't, so the section is hidden
+               on Japanese pages. ── -->
+          <section v-if="char.articulation" class="card">
             <h2 class="card__title">{{ t(tKey('practice.mouthPosition')) }}</h2>
             <MouthDiagram :place="char.articulation" />
           </section>
 
-          <!-- ── Jamo infos ── -->
+          <!-- ── Character infos — generic name + kind row. The card
+               title is now driven by the per-course locale prefix
+               (`courses.korean.hangeul.about` vs
+                `courses.japanese.hiragana.about`) so each course can
+               localize it appropriately ("Jamo" for Korean,
+               "About this kana" for Japanese, etc.). ── -->
           <section class="card">
-            <h2 class="card__title">Jamo</h2>
+            <h2 class="card__title">{{ t(tKey('about')) }}</h2>
             <div class="rows">
               <div class="row">
-                <span class="row__label">Name</span>
+                <span class="row__label">{{ t(tKey('practice.charName')) }}</span>
                 <span class="row__val">{{ localizedName }}</span>
               </div>
-              <div class="row">
-                <span class="row__label">Kind</span>
-                <span class="row__val">{{ t(tKey(`charType_${char.type}`)) }} — {{ t(tKey(`charSubtype_${char.subtype}`)) }}</span>
+              <div v-if="char.type" class="row">
+                <span class="row__label">{{ t(tKey('practice.charKind')) }}</span>
+                <span class="row__val">
+                  {{ t(tKey(`charType_${char.type}`)) }}
+                  <template v-if="char.subtype">— {{ t(tKey(`charSubtype_${char.subtype}`)) }}</template>
+                </span>
               </div>
             </div>
           </section>
 
-          <!-- ── Examples ── -->
-          <section class="card">
+          <!-- ── Examples — only when the character has at least one
+               example word. Empty arrays / undefined skip the section. ── -->
+          <section v-if="char.examples && char.examples.length > 0" class="card">
             <h2 class="card__title">{{ t(tKey('examples')) }}</h2>
             <div class="examples">
               <div v-for="ex in char.examples" :key="ex.syllable" class="ex">
