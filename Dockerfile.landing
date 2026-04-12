@@ -1,0 +1,24 @@
+# ── Stage 1: build ────────────────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+COPY packages/frontend/package*.json ./packages/frontend/
+RUN npm install
+
+COPY packages/frontend/ ./packages/frontend/
+RUN npm run build:frontend
+
+# ── Stage 2: runner ───────────────────────────────────────────────────────────
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+COPY --from=builder /app/packages/frontend/.output ./.output
+
+EXPOSE 5000
+ENV PORT=5000 \
+    NODE_ENV=production
+
+CMD ["node", ".output/server/index.mjs"]

@@ -1,0 +1,50 @@
+# Prod override — builds and runs webapp + frontend as production images
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+
+services:
+  webapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5001"
+    environment:
+      NODE_ENV: production
+      DB_TYPE: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-teachme}
+      DB_USER: ${DB_USER:-teachme}
+      DB_PASSWORD: ${DB_PASSWORD:-teachme_secret}
+      REDIS_URL: redis://redis:6379
+      SMTP_HOST: ${SMTP_HOST:?SMTP_HOST is required in production}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-noreply@teachme.local}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required in production}
+      OTP_TTL_SECONDS: ${OTP_TTL_SECONDS:-600}
+      OTP_RESEND_COOLDOWN_SECONDS: ${OTP_RESEND_COOLDOWN_SECONDS:-60}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5001/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.landing
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      APP_URL: ${APP_URL:-http://localhost:5001}
+    restart: unless-stopped

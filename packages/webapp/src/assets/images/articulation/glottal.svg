@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="128mm"
+   height="185mm"
+   viewBox="0 0 128 185"
+   version="1.1"
+   id="svg8"
+   sodipodi:docname="Glottal stop.svg"
+   inkscape:version="0.92.3 (2405546, 2018-03-11)">
+  <defs
+     id="defs2" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.49497475"
+     inkscape:cx="1118.8824"
+     inkscape:cy="624.53393"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1920"
+     inkscape:window-height="1005"
+     inkscape:window-x="-9"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,-112)">
+    <g
+       aria-label="ʔ"
+       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       id="text3715">
+      <path
+         d="m 47.790096,203.08554 h 6.511231 q 19.843751,0 28.732097,-11.78223 5.994466,-7.85482 5.994466,-17.9834 -0.103352,-13.74593 -5.994466,-20.46386 -10.231934,-11.78223 -28.732097,-11.78223 -8.268229,0 -16.433106,2.27376 -8.061523,2.17041 -16.123047,6.61459 v -17.7767 q 7.854818,-3.61735 16.2264,-5.37435 8.371582,-1.86035 17.156576,-1.86035 28.422038,0 42.684734,16.2264 11.265466,12.91911 11.265466,32.14274 0,17.56999 -11.162113,29.45557 -11.575521,12.29899 -29.145508,15.39958 v 67.38607 h -20.87728 z"
+         style="font-size:211.66667175px;stroke-width:0.26458332"
+         id="path3774" />
+    </g>
+  </g>
+</svg>
