@@ -3,7 +3,6 @@ import { computed, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTrainingStore } from '~/stores/training.store'
 import type { TrainingMode } from '~/composables/useCourseTraining'
-import { useCourseData } from '~/composables/useCourseData'
 import { useCourseContext } from '~/composables/useCourseContext'
 
 definePageMeta({ layout: 'default', middleware: 'auth' })
@@ -11,7 +10,6 @@ definePageMeta({ layout: 'default', middleware: 'auth' })
 const { t } = useI18n()
 const { lang, language, module, paths, tKey } = useCourseContext()
 const training = useTrainingStore()
-const { basicConsonants, doubleConsonants, basicVowels, compoundVowels } = useCourseData()
 
 const course = computed(() => language.value!)
 
@@ -24,12 +22,30 @@ const mode = computed({
   set: (v: TrainingMode) => { training.config.mode = v },
 })
 
-const typeCounts = computed(() => ({
-  basicConsonants: basicConsonants.value.length,
-  doubleConsonants: doubleConsonants.value.length,
-  basicVowels: basicVowels.value.length,
-  compoundVowels: compoundVowels.value.length,
-}))
+// Categories come from the course module config — each course declares
+// its own classification (Korean uses 4 categories, Japanese hiragana
+// uses 2, etc.). We render one checkbox per category and count how many
+// characters fall into each so the user knows what they're toggling.
+const categories = computed(() => module.value?.config.categories ?? [])
+const categoryCounts = computed(() => {
+  const m = module.value
+  if (!m) return {} as Record<string, number>
+  const out: Record<string, number> = {}
+  for (const cat of m.config.categories) {
+    out[cat.id] = m.characters.filter(c => cat.matches(c)).length
+  }
+  return out
+})
+
+function isCategoryEnabled(id: string): boolean {
+  return training.config.enabledCategories[id] !== false
+}
+function setCategoryEnabled(id: string, value: boolean) {
+  training.config.enabledCategories = {
+    ...training.config.enabledCategories,
+    [id]: value,
+  }
+}
 </script>
 
 <template>
@@ -109,48 +125,20 @@ const typeCounts = computed(() => ({
         <h2 class="tc__section-label">{{ t('training.selectTypes') }}</h2>
 
         <div class="tc__types" data-cy="training-type-list">
-          <label class="tc__type-row">
+          <label
+            v-for="cat in categories"
+            :key="cat.id"
+            class="tc__type-row"
+          >
             <input
-              v-model="training.config.includeBasicConsonants"
               type="checkbox"
               class="tc__checkbox"
-              data-cy="training-type-basic-consonants"
+              :checked="isCategoryEnabled(cat.id)"
+              :data-cy="`training-type-${cat.id}`"
+              @change="setCategoryEnabled(cat.id, ($event.target as HTMLInputElement).checked)"
             />
-            <span class="tc__type-label">{{ t(tKey('basicConsonants')) }}</span>
-            <span class="tc__type-count">{{ typeCounts.basicConsonants }}</span>
-          </label>
-
-          <label class="tc__type-row">
-            <input
-              v-model="training.config.includeDoubleConsonants"
-              type="checkbox"
-              class="tc__checkbox"
-              data-cy="training-type-double-consonants"
-            />
-            <span class="tc__type-label">{{ t(tKey('doubleConsonants')) }}</span>
-            <span class="tc__type-count">{{ typeCounts.doubleConsonants }}</span>
-          </label>
-
-          <label class="tc__type-row">
-            <input
-              v-model="training.config.includeBasicVowels"
-              type="checkbox"
-              class="tc__checkbox"
-              data-cy="training-type-basic-vowels"
-            />
-            <span class="tc__type-label">{{ t(tKey('basicVowels')) }}</span>
-            <span class="tc__type-count">{{ typeCounts.basicVowels }}</span>
-          </label>
-
-          <label class="tc__type-row">
-            <input
-              v-model="training.config.includeCompoundVowels"
-              type="checkbox"
-              class="tc__checkbox"
-              data-cy="training-type-compound-vowels"
-            />
-            <span class="tc__type-label">{{ t(tKey('compoundVowels')) }}</span>
-            <span class="tc__type-count">{{ typeCounts.compoundVowels }}</span>
+            <span class="tc__type-label">{{ t(cat.labelKey) }}</span>
+            <span class="tc__type-count">{{ categoryCounts[cat.id] ?? 0 }}</span>
           </label>
         </div>
       </section>

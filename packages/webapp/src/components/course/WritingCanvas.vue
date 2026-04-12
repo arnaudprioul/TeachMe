@@ -32,13 +32,48 @@ const svgGuide = computed(() => {
 })
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
+
+// ── Persistent guide settings ─────────────────────────────────────────
+// Stored in localStorage so the user's preferred guide toggles survive
+// navigation and page reloads. The key is global (not per-course) since
+// guide preferences are about the user's drawing style, not the script.
+const STORAGE_KEY = 'teachme_writing_guides'
+
+interface IGuidePrefs {
+  showGuide: boolean
+  showCenterGrid: boolean
+  show3x3Grid: boolean
+  showDiagonals: boolean
+  showMargin: boolean
+}
+
+function loadPrefs(): Partial<IGuidePrefs> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch { return {} }
+}
+
+function savePrefs() {
+  const prefs: IGuidePrefs = {
+    showGuide: showGuide.value,
+    showCenterGrid: showCenterGrid.value,
+    show3x3Grid: show3x3Grid.value,
+    showDiagonals: showDiagonals.value,
+    showMargin: showMargin.value,
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs))
+}
+
+const saved = loadPrefs()
+
 // In quiz mode the guide must stay off and the toggle is hidden so the
 // learner can't reveal the answer.
-const showGuide = ref(!props.quizMode)
-const showCenterGrid = ref(true)
-const show3x3Grid = ref(true)
-const showDiagonals = ref(false)
-const showMargin = ref(true)
+const showGuide = ref(props.quizMode ? false : (saved.showGuide ?? true))
+const showCenterGrid = ref(saved.showCenterGrid ?? true)
+const show3x3Grid = ref(saved.show3x3Grid ?? true)
+const showDiagonals = ref(saved.showDiagonals ?? false)
+const showMargin = ref(saved.showMargin ?? true)
 
 const isDrawing = ref(false)
 const strokes = ref<{ x: number; y: number }[][]>([])
@@ -163,7 +198,10 @@ function clear() {
   redraw()
 }
 
-watch([showGuide, showCenterGrid, show3x3Grid, showDiagonals, showMargin], redraw)
+watch([showGuide, showCenterGrid, show3x3Grid, showDiagonals, showMargin], () => {
+  redraw()
+  savePrefs()
+})
 watch(() => props.charId, () => { strokes.value = []; nextTick(redraw) })
 
 onMounted(() => { init(); window.addEventListener('resize', resize) })

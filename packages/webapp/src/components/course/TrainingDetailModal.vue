@@ -85,7 +85,7 @@ const isSyllable = computed(() => props.char.id.startsWith('syl-'))
         <!-- Stroke order SVG — hidden for syllables (no SVG exists, the
              StrokeAnimation fallback would otherwise print the raw id) -->
         <div v-if="!isSyllable && hasStrokes" class="modal__stroke">
-          <StrokeAnimation :char-id="char.id" />
+          <StrokeAnimation :char-id="char.id" :symbol="char.symbol" />
         </div>
       </div>
     </div>

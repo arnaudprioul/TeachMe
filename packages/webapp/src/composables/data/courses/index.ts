@@ -1,8 +1,12 @@
 import type { ICourseModule } from './types'
 import { koreanHangeul } from './korean-hangeul'
+import { japaneseHiragana } from './japanese-hiragana'
+import { japaneseKatakana } from './japanese-katakana'
 
 export const COURSE_REGISTRY: Record<string, ICourseModule> = {
-  [koreanHangeul.key]: koreanHangeul,
+  [koreanHangeul.key]:    koreanHangeul,
+  [japaneseHiragana.key]: japaneseHiragana,
+  [japaneseKatakana.key]: japaneseKatakana,
 }
 
 export function getCourseModule(lang: string, course: string): ICourseModule | undefined {

@@ -46,6 +46,25 @@ const PROFILES: Record<string, ILanguageProfile> = {
       { labelKey: 'langProfile.korean.factCountry', value: '🇰🇷 🇰🇵' },
     ],
   },
+  japanese: {
+    slug: 'japanese',
+    nameKey: 'courses.japanese.name',
+    flag: '\u{1F1EF}\u{1F1F5}',
+    heroTitleKey: 'langProfile.japanese.heroTitle',
+    heroSubKey: 'langProfile.japanese.heroSub',
+    highlights: [
+      { icon: '🍣', titleKey: 'langProfile.japanese.foodTitle',    descKey: 'langProfile.japanese.foodDesc' },
+      { icon: '🎌', titleKey: 'langProfile.japanese.cultureTitle', descKey: 'langProfile.japanese.cultureDesc' },
+      { icon: '🌸', titleKey: 'langProfile.japanese.animeTitle',   descKey: 'langProfile.japanese.animeDesc' },
+      { icon: '⛩️', titleKey: 'langProfile.japanese.historyTitle', descKey: 'langProfile.japanese.historyDesc' },
+    ],
+    facts: [
+      { labelKey: 'langProfile.japanese.factSpeakers', value: '125M+' },
+      { labelKey: 'langProfile.japanese.factAlphabet', value: '46+46' },
+      { labelKey: 'langProfile.japanese.factRanking',  value: '#9' },
+      { labelKey: 'langProfile.japanese.factCountry',  value: '🇯🇵' },
+    ],
+  },
 }
 
 const COURSE_ICONS: Record<string, string> = {

@@ -316,7 +316,7 @@ async function verifyDrawing() {
   try {
     // Primary path: ask Google's recognizer.
     const candidates = await recognize(drawn, canvasSize, {
-      language: 'ko',
+      language: module.value?.config.ttsLang?.split('-')[0] ?? 'ko',
       maxResults: 10,
     })
 
