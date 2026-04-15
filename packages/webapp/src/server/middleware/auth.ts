@@ -1,6 +1,6 @@
 import { verifyToken } from '../utils/auth'
 
-const PROTECTED = ['/api/v1/quiz']
+const PROTECTED = ['/api/v1/quiz', '/api/v1/reviews']
 
 export default defineEventHandler((event) => {
   if (!PROTECTED.some((p) => event.path.startsWith(p))) return

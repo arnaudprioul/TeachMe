@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useUiLocales } from '~/composables/useUiLocales'
 import { useAuthStore } from '~/stores/auth.store'
 import { useStatsStore } from '~/stores/stats.store'
 import { useFavoritesStore } from '~/stores/favorites.store'
@@ -11,7 +12,8 @@ import type { ICourseCharacter } from '~/composables/data/courses/types'
 
 definePageMeta({ layout: 'default', middleware: 'auth' })
 
-const { t, locale, setLocale, availableLocales } = useI18n()
+const { t } = useI18n()
+const { locale, setLocale, locales: uiLocales } = useUiLocales()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
@@ -59,7 +61,9 @@ interface IFavoriteGroup {
 const favoriteGroups = computed<IFavoriteGroup[]>(() =>
   favorites.courseKeys.map(courseKey => {
     const module = COURSE_REGISTRY[courseKey]
-    const [lang, course] = courseKey.split('-')
+    const dash = courseKey.indexOf('-')
+    const lang = courseKey.slice(0, dash)
+    const course = courseKey.slice(dash + 1)
     const courseInfo = courses.find(c => c.slug === lang)
     const ids = favorites.listForCourse(courseKey)
     const chars = module
@@ -70,7 +74,7 @@ const favoriteGroups = computed<IFavoriteGroup[]>(() =>
       lang,
       course,
       langName: t(`courses.${lang}.name`),
-      courseName: t(`courses.${lang}.${course}.title`),
+      courseName: t(`courses.${lang}.${course.replace(/-/g, '')}.title`),
       flag: courseInfo?.flag,
       color: courseInfo?.color,
       chars,
@@ -80,7 +84,9 @@ const favoriteGroups = computed<IFavoriteGroup[]>(() =>
 
 const langStatsList = computed(() =>
   stats.activeCourses.map(courseKey => {
-    const [lang, course] = courseKey.split('-')
+    const dash = courseKey.indexOf('-')
+    const lang = courseKey.slice(0, dash)
+    const course = courseKey.slice(dash + 1)
     const courseInfo = courses.find(c => c.slug === lang)
     const s = stats.getStats(courseKey)
     return {
@@ -88,7 +94,7 @@ const langStatsList = computed(() =>
       lang,
       course,
       langName: t(`courses.${lang}.name`),
-      courseName: t(`courses.${lang}.${course}.title`),
+      courseName: t(`courses.${lang}.${course.replace(/-/g, '')}.title`),
       flag: courseInfo?.flag,
       color: courseInfo?.color,
       ...s,
@@ -114,21 +120,10 @@ const langStatsList = computed(() =>
       </div>
     </header>
 
-    <!-- ── Tabs ── -->
-    <nav class="tabs">
-      <button
-        class="tab" :class="{ 'tab--active': activeTab === 'overview' }"
-        @click="activeTab = 'overview'"
-      >{{ t('profile.tabOverview') }}</button>
-      <button
-        class="tab" :class="{ 'tab--active': activeTab === 'favorites' }"
-        @click="activeTab = 'favorites'"
-      >{{ t('profile.tabFavorites') }} <span class="tab__count">{{ favorites.totalCount }}</span></button>
-      <button
-        class="tab" :class="{ 'tab--active': activeTab === 'settings' }"
-        @click="activeTab = 'settings'"
-      >{{ t('profile.tabSettings') }}</button>
-    </nav>
+    <!-- ── Sidebar + content ── -->
+    <div class="profile__layout">
+      <AccountSidebar />
+      <div class="profile__content">
 
     <!-- ── OVERVIEW ── -->
     <div v-if="activeTab === 'overview'" class="tab-content">
@@ -220,11 +215,16 @@ const langStatsList = computed(() =>
           <div class="setting__label">
             <span>{{ t('profile.language') }}</span>
           </div>
-          <select class="select" :value="locale" @change="setLocale(($event.target as HTMLSelectElement).value as 'en' | 'fr')">
-            <option v-for="l in availableLocales" :key="l" :value="l">
-              {{ l === 'fr' ? 'Français' : 'English' }}
-            </option>
-          </select>
+          <div class="lang-picker">
+            <button
+              v-for="l in uiLocales" :key="l.code"
+              class="lang-pill" :class="{ 'lang-pill--active': locale === l.code }"
+              @click="setLocale(l.code as 'en' | 'fr')"
+            >
+              <span class="lang-pill__flag">{{ l.flag }}</span>
+              <span class="lang-pill__name">{{ l.nativeName }}</span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -258,12 +258,16 @@ const langStatsList = computed(() =>
         <button class="btn btn--danger btn--sm">{{ t('profile.deleteAccount') }}</button>
       </section>
     </div>
+      </div><!-- /.profile__content -->
+    </div><!-- /.profile__layout -->
   </div>
 </template>
 
 <style scoped>
 .profile {
   display: flex; flex-direction: column; gap: var(--space-6);
+  max-width: 1200px; margin: 0 auto;
+  padding: 0 var(--space-6);
 }
 
 /* Header */
@@ -283,29 +287,12 @@ const langStatsList = computed(() =>
 .profile__info h1 { font-size: var(--text-2xl); font-weight: 600; color: var(--color-text); }
 .profile__info p { font-size: var(--text-sm); color: var(--color-text-muted); margin-top: 2px; }
 
-/* Tabs */
-.tabs {
-  display: flex; gap: var(--space-1);
-  border-bottom: 1px solid var(--color-border);
-}
+/* Layout with sidebar */
+.profile__layout { display: flex; gap: var(--space-8); align-items: flex-start; }
+.profile__content { flex: 1; display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
 
-.tab {
-  display: inline-flex; align-items: center; gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  border: none; background: transparent;
-  font-size: var(--text-sm); font-weight: 500;
-  color: var(--color-text-muted); cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  transition: all var(--transition-fast);
-}
-.tab:hover { color: var(--color-text); }
-.tab--active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
-
-.tab__count {
-  font-size: 0.7rem; padding: 1px var(--space-2);
-  border-radius: var(--radius-full);
-  background: var(--color-bg-muted); color: var(--color-text-muted);
+@media (max-width: 900px) {
+  .profile__layout { flex-direction: column; gap: var(--space-4); }
 }
 
 .tab-content { display: flex; flex-direction: column; gap: var(--space-4); }
@@ -421,13 +408,30 @@ const langStatsList = computed(() =>
   box-shadow: var(--shadow-xs);
 }
 
-/* Select */
-.select {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-surface);
-  color: var(--color-text);
-  font-size: var(--text-sm);
+/* Language picker */
+.lang-picker {
+  display: flex; flex-wrap: wrap; gap: var(--space-2);
 }
+.lang-pill {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm); font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.lang-pill:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+.lang-pill--active {
+  background: var(--color-primary-subtle);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+.lang-pill__flag { font-size: 1.1rem; line-height: 1; }
 </style>

@@ -67,8 +67,15 @@ const PROFILES: Record<string, ILanguageProfile> = {
   },
 }
 
+/**
+ * Icon shown on the language landing page next to the course title.
+ * Keyed by course slug, with a fallback '?' for unknown courses.
+ * Note: courses that share a slug across languages (e.g. 'level-1') use the
+ * same icon — acceptable since the language context is already clear.
+ */
 const COURSE_ICONS: Record<string, string> = {
   hangeul: '한',
+  'level-1': '1',
   hiragana: 'あ',
   katakana: 'ア',
   pinyin: '汉',
@@ -78,14 +85,17 @@ export function useLanguageProfile(slug: string) {
   const profile = PROFILES[slug]
 
   const courses = computed<ILanguageCourse[]>(() =>
-    listCoursesForLanguage(slug).map(m => ({
-      slug: m.course,
-      titleKey: `courses.${m.lang}.${m.course}.title`,
-      descKey: `courses.${m.lang}.${m.course}.desc`,
-      icon: COURSE_ICONS[m.course] ?? '?',
-      route: `/${m.lang}/${m.course}`,
-      available: true,
-    })),
+    listCoursesForLanguage(slug).map(m => {
+      const courseKey = m.course.replace(/-/g, '')
+      return {
+        slug: m.course,
+        titleKey: `courses.${m.lang}.${courseKey}.title`,
+        descKey: `courses.${m.lang}.${courseKey}.desc`,
+        icon: COURSE_ICONS[m.course] ?? '?',
+        route: `/${m.lang}/${m.course}`,
+        available: true,
+      }
+    }),
   )
 
   return { profile, courses }

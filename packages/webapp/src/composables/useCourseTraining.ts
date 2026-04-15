@@ -182,7 +182,7 @@ export function createCourseTraining() {
     const isEnabled = (catId: string) => c.enabledCategories[catId] !== false
     const activeCats = m.config.categories.filter(cat => isEnabled(cat.id))
 
-    for (const ch of m.characters) {
+    for (const ch of (m.characters ?? [])) {
       const matched = activeCats.some(cat => cat.matches(ch))
       if (!matched) continue
       items.push(characterToItem(ch, m))
@@ -195,7 +195,7 @@ export function createCourseTraining() {
       // "double consonants" naturally drops the matching syllables too.
       const acceptedConsonantIds = new Set<string>()
       const acceptedVowelIds = new Set<string>()
-      for (const ch of m.characters) {
+      for (const ch of (m.characters ?? [])) {
         const matched = activeCats.some(cat => cat.matches(ch))
         if (!matched) continue
         if (ch.type === 'consonant') acceptedConsonantIds.add(ch.id)

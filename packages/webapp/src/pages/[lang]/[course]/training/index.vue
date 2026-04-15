@@ -32,7 +32,7 @@ const categoryCounts = computed(() => {
   if (!m) return {} as Record<string, number>
   const out: Record<string, number> = {}
   for (const cat of m.config.categories) {
-    out[cat.id] = m.characters.filter(c => cat.matches(c)).length
+    out[cat.id] = (m.characters ?? []).filter(c => cat.matches(c)).length
   }
   return out
 })
