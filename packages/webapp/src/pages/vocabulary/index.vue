@@ -13,11 +13,12 @@ const reviews = useReviewsStore()
 const auth = useAuthStore()
 const { getBySlug } = useCourses()
 
+const userInitial = computed(() => auth.user?.username?.[0]?.toUpperCase() ?? '?')
+
 onMounted(() => {
-  if (auth.isAuthenticated) reviews.load() // all langs
+  if (auth.isAuthenticated) reviews.load()
 })
 
-/** Groups of review cards by language, with the language metadata joined in. */
 const groups = computed(() => {
   const byLang = new Map<string, ReturnType<typeof resolveReviewCards>>()
   for (const card of reviews.cards) {
@@ -48,176 +49,188 @@ function startReview(langSlug?: string) {
 </script>
 
 <template>
-  <div class="vocab-page page-container">
+  <div class="profile page-container">
     <Breadcrumb :items="[
       { label: t('nav.dashboard'), to: '/dashboard' },
       { label: t('vocabulary.title') },
     ]" />
 
-    <div class="vocab-page__layout">
+    <!-- ── Header (matches /profile) ── -->
+    <header class="profile__header">
+      <div class="profile__avatar">{{ userInitial }}</div>
+      <div class="profile__info">
+        <h1>{{ auth.user?.username }}</h1>
+        <p v-if="auth.user?.email">{{ auth.user.email }}</p>
+      </div>
+    </header>
+
+    <!-- ── Sidebar + content ── -->
+    <div class="profile__layout">
       <AccountSidebar />
+      <div class="profile__content">
 
-      <div class="vocab-page__content">
-        <div class="vocab-page__hero">
-          <h1>{{ t('vocabulary.title') }}</h1>
-          <p class="vocab-page__sub">{{ t('vocabulary.subtitle') }}</p>
-        </div>
-
-      <!-- Global stats + review all CTA (only when there's content) -->
-      <div v-if="totalCards > 0" class="vocab-page__global">
-        <div class="vocab-page__stats">
-          <span class="vocab-page__count">{{ t('vocabulary.cardsCount', { n: totalCards }) }}</span>
-          <span v-if="totalDue > 0" class="vocab-page__due">{{ t('vocabulary.dueCount', { n: totalDue }) }}</span>
-        </div>
-        <button class="vocab-page__cta" @click="startReview()">
-          {{ t('vocabulary.startReviewAll') }}
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </button>
-      </div>
-
-      <!-- Empty state -->
-      <div v-if="totalCards === 0" class="vocab-page__empty">
-        <span class="vocab-page__empty-icon">📚</span>
-        <p>{{ t('vocabulary.empty') }}</p>
-      </div>
-
-      <!-- Language sections -->
-      <section
-        v-for="group in groups" :key="group.langSlug"
-        class="lang-section"
-        :style="{ '--cc': group.language?.color, '--cc-s': group.language?.colorSubtle }"
-      >
-        <div class="lang-section__head">
-          <div class="lang-section__title">
-            <span class="lang-section__flag">{{ group.language?.flag }}</span>
-            <h2>{{ t(`courses.${group.langSlug}.name`) }}</h2>
-            <span class="lang-section__count">{{ t('vocabulary.cardsCount', { n: group.cards.length }) }}</span>
-            <span v-if="group.dueCount > 0" class="lang-section__due">{{ t('vocabulary.dueCount', { n: group.dueCount }) }}</span>
+        <!-- Empty state -->
+        <section v-if="totalCards === 0" class="card">
+          <h2 class="card__title">{{ t('vocabulary.title') }}</h2>
+          <div class="empty-state">
+            <span class="empty-state__icon">📚</span>
+            <p>{{ t('vocabulary.empty') }}</p>
           </div>
-          <button class="lang-section__review-btn" @click="startReview(group.langSlug)">
-            {{ t('vocabulary.startReview') }}
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-          </button>
-        </div>
+        </section>
 
-        <div class="lang-section__grid">
-          <div v-for="c in group.cards" :key="c.id" class="rc">
-            <div class="rc__visual">
-              <img v-if="c.word?.image" :src="c.word.image" :alt="c.word.translation" />
-              <span v-else-if="c.word?.emoji" class="rc__emoji">{{ c.word.emoji }}</span>
+        <!-- Global overview + Review-all CTA -->
+        <section v-else class="card">
+          <h2 class="card__title">{{ t('vocabulary.title') }}</h2>
+          <div class="overview">
+            <div class="overview__stats">
+              <div class="stat">
+                <span class="stat__value">{{ totalCards }}</span>
+                <span class="stat__label">{{ t('vocabulary.cardsCount', { n: '' }).trim() }}</span>
+              </div>
+              <div v-if="totalDue > 0" class="stat stat--due">
+                <span class="stat__value">{{ totalDue }}</span>
+                <span class="stat__label">{{ t('vocabulary.dueCount', { n: '' }).trim() }}</span>
+              </div>
             </div>
-            <div class="rc__body">
-              <span class="rc__word">{{ c.word?.word ?? c.wordId }}</span>
-              <span class="rc__rom">{{ c.word?.romanization }}</span>
-              <span class="rc__tl">{{ locale === 'fr' ? c.word?.translationFr : c.word?.translation }}</span>
+            <button class="btn btn--primary btn--sm" @click="startReview()">
+              {{ t('vocabulary.startReviewAll') }}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <!-- One card per language -->
+        <section
+          v-for="group in groups" :key="group.langSlug"
+          class="card"
+        >
+          <h2 class="card__title">{{ group.language?.flag }} {{ t(`courses.${group.langSlug}.name`) }}</h2>
+          <div class="lang-head">
+            <div class="lang-head__stats">
+              <span class="lang-chip">{{ t('vocabulary.cardsCount', { n: group.cards.length }) }}</span>
+              <span v-if="group.dueCount > 0" class="lang-chip lang-chip--due">{{ t('vocabulary.dueCount', { n: group.dueCount }) }}</span>
             </div>
-            <div class="rc__meta">
-              <span class="rc__reps" :title="`${c.srs.repetitions} successful reviews`">{{ c.srs.repetitions }}×</span>
-              <button class="rc__remove" aria-label="remove" @click="removeCard(c.id)">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
+            <button class="btn btn--ghost btn--sm" @click="startReview(group.langSlug)">
+              {{ t('vocabulary.startReview') }}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
+          </div>
+
+          <div class="rc-grid">
+            <div v-for="c in group.cards" :key="c.id" class="rc">
+              <div class="rc__visual">
+                <img v-if="c.word?.image" :src="c.word.image" :alt="c.word.translation" />
+                <span v-else-if="c.word?.emoji" class="rc__emoji">{{ c.word.emoji }}</span>
+              </div>
+              <div class="rc__body">
+                <span class="rc__word">{{ c.word?.word ?? c.wordId }}</span>
+                <span class="rc__rom">{{ c.word?.romanization }}</span>
+                <span class="rc__tl">{{ locale === 'fr' ? c.word?.translationFr : c.word?.translation }}</span>
+              </div>
+              <div class="rc__meta">
+                <span class="rc__reps" :title="`${c.srs.repetitions} successful reviews`">{{ c.srs.repetitions }}×</span>
+                <button class="rc__remove" aria-label="remove" @click="removeCard(c.id)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
-      </div><!-- /.vocab-page__content -->
-    </div><!-- /.vocab-page__layout -->
+        </section>
+
+      </div><!-- /.profile__content -->
+    </div><!-- /.profile__layout -->
   </div>
 </template>
 
 <style scoped>
-.vocab-page { padding: var(--space-6) 0 var(--space-16); max-width: 1200px; margin: 0 auto; padding-left: var(--space-6); padding-right: var(--space-6); }
+/* Share the same base styles as /profile */
+.profile {
+  display: flex; flex-direction: column; gap: var(--space-6);
+  max-width: 1200px; margin: 0 auto;
+  padding: 0 var(--space-6);
+}
 
-.vocab-page__layout { display: flex; gap: var(--space-8); align-items: flex-start; margin-top: var(--space-6); }
-.vocab-page__content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-6); }
+.profile__header { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-6) 0; }
+.profile__avatar {
+  width: 72px; height: 72px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-subtle); color: var(--color-primary);
+  font-size: var(--text-2xl); font-weight: 700;
+}
+.profile__info h1 { font-size: var(--text-2xl); font-weight: 600; color: var(--color-text); }
+.profile__info p { font-size: var(--text-sm); color: var(--color-text-muted); margin-top: 2px; }
 
+.profile__layout { display: flex; gap: var(--space-8); align-items: flex-start; }
+.profile__content { flex: 1; display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
 @media (max-width: 900px) {
-  .vocab-page__layout { flex-direction: column; gap: var(--space-4); }
+  .profile__layout { flex-direction: column; gap: var(--space-4); }
 }
 
-.vocab-page__hero { margin-bottom: var(--space-2); }
-.vocab-page__hero h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 800; color: var(--color-text); letter-spacing: -0.02em; margin: 0; }
-.vocab-page__sub { font-size: var(--text-sm); color: var(--color-text-muted); margin-top: var(--space-2); }
+/* Card (same as /profile) */
+.card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  display: flex; flex-direction: column; gap: var(--space-4);
+}
+.card__title {
+  font-size: var(--text-xs); font-weight: 600; color: var(--color-text-muted);
+  text-transform: uppercase; letter-spacing: 0.05em;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
 
-.vocab-page__global {
-  display: flex; justify-content: space-between; align-items: center; gap: var(--space-4);
-  margin-bottom: var(--space-8); padding: var(--space-5) var(--space-6);
-  background: var(--color-bg-surface); border: 1px solid var(--color-border);
-  border-radius: var(--radius-2xl); flex-wrap: wrap;
-}
-.vocab-page__stats { display: flex; gap: var(--space-3); align-items: center; }
-.vocab-page__count { font-size: var(--text-sm); color: var(--color-text-muted); font-weight: 600; }
-.vocab-page__due {
-  font-size: var(--text-xs); font-weight: 700;
-  color: #d97706; background: #fef3c7;
-  padding: 2px var(--space-3); border-radius: var(--radius-full);
-}
-.vocab-page__cta {
-  display: inline-flex; align-items: center; gap: var(--space-2);
-  padding: var(--space-3) var(--space-6);
-  background: var(--color-primary); color: #fff; border: none;
-  border-radius: var(--radius-full);
-  font-size: var(--text-sm); font-weight: 700; cursor: pointer;
-  transition: all var(--transition-fast);
-}
-.vocab-page__cta:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-.vocab-page__cta svg { transition: transform 200ms ease; }
-.vocab-page__cta:hover svg { transform: translateX(3px); }
+/* Empty state */
+.empty-state { text-align: center; padding: var(--space-6) var(--space-4); color: var(--color-text-muted); }
+.empty-state__icon { font-size: 2.5rem; display: block; margin-bottom: var(--space-3); }
+.empty-state p { margin: 0; font-size: var(--text-sm); }
 
-.vocab-page__empty {
-  text-align: center; padding: var(--space-16) var(--space-6);
-  color: var(--color-text-muted);
-}
-.vocab-page__empty-icon { font-size: 3rem; display: block; margin-bottom: var(--space-4); }
+/* Global overview */
+.overview { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
+.overview__stats { display: flex; gap: var(--space-6); }
+.stat { display: flex; flex-direction: column; gap: 2px; }
+.stat__value { font-size: var(--text-2xl); font-weight: 700; color: var(--color-text); }
+.stat__label { font-size: var(--text-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.stat--due .stat__value { color: #d97706; }
 
-/* Language section */
-.lang-section { margin-bottom: var(--space-10); }
-.lang-section__head {
-  display: flex; justify-content: space-between; align-items: center; gap: var(--space-3);
-  margin-bottom: var(--space-4); flex-wrap: wrap;
-  padding-bottom: var(--space-3); border-bottom: 2px solid var(--cc, var(--color-border));
+/* Language head */
+.lang-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.lang-head__stats { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; }
+.lang-chip {
+  font-size: var(--text-xs); font-weight: 600; color: var(--color-text-muted);
+  padding: 2px var(--space-3); background: var(--color-bg-muted); border-radius: var(--radius-full);
 }
-.lang-section__title { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
-.lang-section__flag { font-size: 1.6rem; }
-.lang-section__head h2 { font-size: var(--text-xl); font-weight: 700; color: var(--color-text); margin: 0; }
-.lang-section__count { font-size: var(--text-xs); color: var(--color-text-muted); font-weight: 600; padding: 2px var(--space-3); background: var(--color-bg-muted); border-radius: var(--radius-full); }
-.lang-section__due {
-  font-size: var(--text-xs); font-weight: 700; color: #d97706;
-  background: #fef3c7; padding: 2px var(--space-3); border-radius: var(--radius-full);
-}
-.lang-section__review-btn {
-  display: inline-flex; align-items: center; gap: var(--space-1);
-  padding: var(--space-2) var(--space-4);
-  background: var(--cc, var(--color-primary)); color: #fff; border: none;
-  border-radius: var(--radius-full);
-  font-size: var(--text-xs); font-weight: 700; cursor: pointer;
-  transition: all var(--transition-fast);
-}
-.lang-section__review-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.lang-chip--due { background: #fef3c7; color: #92400e; }
 
-.lang-section__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-3); }
-
-/* Review card */
+/* Review card grid */
+.rc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-2); }
 .rc {
   display: flex; align-items: center; gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-bg-surface); border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-muted); border-radius: var(--radius-lg);
 }
-.rc__visual { width: 48px; height: 48px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-.rc__visual img { width: 48px; height: 48px; object-fit: contain; }
-.rc__emoji { font-size: 1.6rem; }
+.rc__visual { width: 40px; height: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.rc__visual img { width: 40px; height: 40px; object-fit: contain; }
+.rc__emoji { font-size: 1.3rem; }
 .rc__body { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.rc__word { font-size: var(--text-sm); font-weight: 700; color: var(--color-text); font-family: var(--font-cjk-kr); overflow: hidden; text-overflow: ellipsis; }
+.rc__word { font-size: var(--text-sm); font-weight: 700; color: var(--color-text); font-family: var(--font-cjk-kr); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rc__rom { font-size: 0.7rem; color: var(--color-text-muted); }
 .rc__tl { font-size: 0.7rem; color: var(--color-text-secondary); }
 .rc__meta { display: flex; align-items: center; gap: var(--space-1); flex-shrink: 0; }
-.rc__reps { font-size: 0.7rem; color: var(--color-text-muted); font-weight: 700; padding: 2px var(--space-2); background: var(--color-bg-muted); border-radius: var(--radius-full); }
+.rc__reps {
+  font-size: 0.7rem; color: var(--color-text-muted); font-weight: 700;
+  padding: 2px var(--space-2); background: var(--color-bg-surface); border-radius: var(--radius-full);
+}
 .rc__remove {
   display: flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px; border: none; background: transparent;
+  width: 26px; height: 26px; border: none; background: transparent;
   color: var(--color-text-muted); cursor: pointer;
   border-radius: var(--radius-full);
 }
-.rc__remove:hover { background: #fef2f2; color: #ef4444; }
+.rc__remove:hover { background: var(--color-bg-surface); color: #ef4444; }
+
+/* Button with icon */
+.btn svg { margin-left: 4px; }
 </style>
