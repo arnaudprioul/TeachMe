@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useUiLocales } from '~/composables/useUiLocales'
 import { useAuthStore } from '~/stores/auth.store'
 import { useStatsStore } from '~/stores/stats.store'
 import { useFavoritesStore } from '~/stores/favorites.store'
@@ -11,7 +12,8 @@ import type { ICourseCharacter } from '~/composables/data/courses/types'
 
 definePageMeta({ layout: 'default', middleware: 'auth' })
 
-const { t, locale, setLocale, availableLocales } = useI18n()
+const { t } = useI18n()
+const { locale, setLocale, locales: uiLocales } = useUiLocales()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
@@ -209,11 +211,16 @@ const langStatsList = computed(() =>
           <div class="setting__label">
             <span>{{ t('profile.language') }}</span>
           </div>
-          <select class="select" :value="locale" @change="setLocale(($event.target as HTMLSelectElement).value as 'en' | 'fr')">
-            <option v-for="l in availableLocales" :key="l" :value="l">
-              {{ l === 'fr' ? 'Français' : 'English' }}
-            </option>
-          </select>
+          <div class="lang-picker">
+            <button
+              v-for="l in uiLocales" :key="l.code"
+              class="lang-pill" :class="{ 'lang-pill--active': locale === l.code }"
+              @click="setLocale(l.code as 'en' | 'fr')"
+            >
+              <span class="lang-pill__flag">{{ l.flag }}</span>
+              <span class="lang-pill__name">{{ l.nativeName }}</span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -397,13 +404,30 @@ const langStatsList = computed(() =>
   box-shadow: var(--shadow-xs);
 }
 
-/* Select */
-.select {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-surface);
-  color: var(--color-text);
-  font-size: var(--text-sm);
+/* Language picker */
+.lang-picker {
+  display: flex; flex-wrap: wrap; gap: var(--space-2);
 }
+.lang-pill {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm); font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.lang-pill:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+.lang-pill--active {
+  background: var(--color-primary-subtle);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+.lang-pill__flag { font-size: 1.1rem; line-height: 1; }
 </style>
