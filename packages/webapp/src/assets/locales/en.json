@@ -684,6 +684,22 @@
     "tryHarder": "Try the harder level",
     "tryAttempts": "tries"
   },
+  "vocabulary": {
+    "title": "My Vocabulary",
+    "subtitle": "Words you've added to your review deck",
+    "empty": "No words yet — tap the ⭐ on a word in a lesson to add it here.",
+    "startReview": "Start review",
+    "cardsCount": "{n} cards",
+    "dueCount": "{n} due",
+    "reviewTitle": "Review session",
+    "flipCard": "Tap to flip",
+    "didNotKnow": "Didn't know",
+    "gotIt": "Got it",
+    "sessionComplete": "Session complete",
+    "reviewedCount": "{n} cards reviewed",
+    "backToDeck": "Back to deck",
+    "loginRequired": "Log in to manage your vocabulary deck"
+  },
   "levels": {
     "whatYouWillLearn": "What you'll learn",
     "lessonsCount": "{n} lessons",

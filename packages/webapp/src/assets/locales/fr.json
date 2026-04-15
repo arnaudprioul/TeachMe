@@ -684,6 +684,22 @@
     "tryHarder": "Essayer le niveau supérieur",
     "tryAttempts": "essais"
   },
+  "vocabulary": {
+    "title": "Mon vocabulaire",
+    "subtitle": "Les mots que tu as ajoutés à ton deck de révision",
+    "empty": "Aucun mot pour l'instant — clique sur l'⭐ d'un mot dans une leçon pour l'ajouter ici.",
+    "startReview": "Commencer la révision",
+    "cardsCount": "{n} cartes",
+    "dueCount": "{n} à réviser",
+    "reviewTitle": "Session de révision",
+    "flipCard": "Tape pour retourner",
+    "didNotKnow": "Je ne savais pas",
+    "gotIt": "Je savais !",
+    "sessionComplete": "Session terminée",
+    "reviewedCount": "{n} cartes révisées",
+    "backToDeck": "Retour au deck",
+    "loginRequired": "Connecte-toi pour gérer ton deck de vocabulaire"
+  },
   "levels": {
     "whatYouWillLearn": "Ce que tu vas apprendre",
     "lessonsCount": "{n} leçons",

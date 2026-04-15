@@ -208,6 +208,30 @@ async function migrate(db: ReturnType<typeof knex>): Promise<void> {
   }
 
   // ═══════════════════════════════════════════════════════
+  // USER REVIEW CARDS (SRS / Anki-style)
+  // ═══════════════════════════════════════════════════════
+  if (!(await db.schema.hasTable('user_review_cards'))) {
+    await db.schema.createTable('user_review_cards', (t) => {
+      t.string('id').primary()
+      t.string('user_id').notNullable().references('id').inTable('users').onDelete('CASCADE')
+      t.string('lang').notNullable()          // 'korean', 'japanese'
+      t.string('word_id').notNullable()       // matches ILessonWord.id (e.g. 'hello')
+      t.string('course_id').notNullable()     // where the word was added from
+      t.integer('lesson_id').notNullable()    // lesson number
+      // SM-2 algorithm state
+      t.float('ease_factor').notNullable().defaultTo(2.5)
+      t.integer('interval_days').notNullable().defaultTo(0)
+      t.integer('repetitions').notNullable().defaultTo(0)
+      t.timestamp('next_review_at').nullable()
+      t.timestamp('last_reviewed_at').nullable()
+      t.timestamp('created_at').defaultTo(db.fn.now())
+      t.timestamp('updated_at').defaultTo(db.fn.now())
+      t.unique(['user_id', 'lang', 'word_id', 'course_id', 'lesson_id'])
+      t.index(['user_id', 'lang'])
+    })
+  }
+
+  // ═══════════════════════════════════════════════════════
   // USER LESSON PROGRESS
   // ═══════════════════════════════════════════════════════
   if (!(await db.schema.hasTable('user_lesson_progress'))) {

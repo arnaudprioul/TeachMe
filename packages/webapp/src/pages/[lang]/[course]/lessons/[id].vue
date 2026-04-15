@@ -8,7 +8,7 @@ definePageMeta({ layout: 'default', middleware: 'auth' })
 
 const { t, locale } = useI18n()
 const route = useRoute()
-const { lang, module, language, paths, tKey } = useCourseContext()
+const { lang, module, language, paths, tKey, courseKey } = useCourseContext()
 const quiz = useLessonQuizStore()
 
 const course = computed(() => language.value!)
@@ -96,7 +96,11 @@ const heroChars = computed(() => {
         <div class="vocab-grid">
           <VocabCard
             v-for="word in lesson.words" :key="word.id"
-            :word="word" :locale="(locale as 'en' | 'fr')"
+            :word="word"
+            :locale="(locale as 'en' | 'fr')"
+            :lang="lang"
+            :course-id="courseKey"
+            :lesson-id="lessonId"
           />
         </div>
 

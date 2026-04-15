@@ -92,6 +92,18 @@ const heroImg = computed(() => {
             <svg v-if="c.available" class="course-card__chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
             <span v-else class="course-card__badge">{{ t('common.soon') }}</span>
           </NuxtLink>
+
+          <NuxtLink
+            :to="`/${langSlug}/vocabulary`"
+            class="course-card course-card--vocab"
+          >
+            <span class="course-card__icon">⭐</span>
+            <div class="course-card__body">
+              <h3>{{ t('vocabulary.title') }}</h3>
+              <p>{{ t('vocabulary.subtitle') }}</p>
+            </div>
+            <svg class="course-card__chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </NuxtLink>
         </div>
 
         <div class="coming-soon">
