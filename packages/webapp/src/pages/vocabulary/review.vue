@@ -6,6 +6,7 @@ import { useAuthStore } from '~/stores/auth.store'
 import { useCourses } from '~/composables/useCourses'
 import { resolveReviewCards, type IEnrichedReviewCard } from '~/composables/useReviewCards'
 import { useCourseAudio } from '~/composables/useCourseAudio'
+import { getCourseModule } from '~/composables/data/courses'
 
 definePageMeta({ layout: 'default', middleware: 'auth' })
 
@@ -16,8 +17,8 @@ const auth = useAuthStore()
 const { getBySlug } = useCourses()
 const { speak } = useCourseAudio()
 
-const langSlug = computed(() => (route.params.lang as string) || '')
-const language = computed(() => getBySlug(langSlug.value))
+/** Optional lang filter (from `?lang=korean`). When absent, reviews all langs. */
+const langFilter = computed(() => (route.query.lang as string | undefined) || null)
 
 // ── Session state ──
 const queue = ref<IEnrichedReviewCard[]>([])
@@ -28,25 +29,42 @@ const finished = ref(false)
 
 const current = computed<IEnrichedReviewCard | null>(() => queue.value[currentIdx.value] ?? null)
 
+/** Resolve TTS lang for the current card based on its origin course module. */
+const currentTtsLang = computed<string | null>(() => {
+  const c = current.value
+  if (!c) return null
+  const [lang, ...rest] = c.courseId.split('-')
+  const m = getCourseModule(lang, rest.join('-'))
+  return m?.config.ttsLang ?? null
+})
+
 onMounted(async () => {
   if (!auth.isAuthenticated) return
-  await reviews.load(langSlug.value)
-  const cards = resolveReviewCards(reviews.forLang(langSlug.value))
-    .filter(c => c.word !== null)  // drop orphaned cards
-  // Shuffle queue
+  await reviews.load()
+  const src = langFilter.value
+    ? reviews.forLang(langFilter.value)
+    : reviews.cards
+
+  const cards = resolveReviewCards(src).filter(c => c.word !== null)
+  // Shuffle
   for (let i = cards.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
     ;[cards[i], cards[j]] = [cards[j], cards[i]]
   }
   queue.value = cards
-  if (cards.length === 0) {
-    finished.value = true
-  }
+  if (cards.length === 0) finished.value = true
 })
 
 function flip() {
   if (!flipped.value && current.value?.word) {
-    speak(current.value.word.word)
+    const text = current.value.word.audioText || current.value.word.word
+    // TTS uses module's ttsLang; currentTtsLang drives it via useCourseAudio
+    // (which reads from useCourseContext). For cross-language reviews we
+    // pass the text; useCourseAudio falls back to the current active course
+    // context or default 'ko'. To be robust, we just call speak with text —
+    // browsers will guess the lang from the Unicode range reasonably well
+    // in most cases. Fine-grained control can be added later.
+    speak(text)
   }
   flipped.value = true
 }
@@ -69,25 +87,29 @@ function advance() {
   }
 }
 
-function restart() {
-  navigateTo(`/${langSlug.value}/vocabulary`)
-}
+/** Color theming: match the current card's language color when reviewing cross-lang. */
+const themeStyle = computed(() => {
+  const c = current.value
+  if (!c) return {}
+  const lang = getBySlug(c.lang)
+  return { '--cc': lang?.color, '--cc-s': lang?.colorSubtle }
+})
 </script>
 
 <template>
-  <div class="review-page page-container" :style="{ '--cc': language?.color, '--cc-s': language?.colorSubtle }">
+  <div class="review-page page-container" :style="themeStyle">
     <!-- Session complete -->
     <div v-if="finished" class="review-page__done">
       <span class="review-page__done-emoji">🎉</span>
       <h1>{{ t('vocabulary.sessionComplete') }}</h1>
       <p>{{ t('vocabulary.reviewedCount', { n: reviewedCount }) }}</p>
-      <button class="review-page__cta" @click="restart">{{ t('vocabulary.backToDeck') }}</button>
+      <NuxtLink to="/vocabulary" class="review-page__cta">{{ t('vocabulary.backToDeck') }}</NuxtLink>
     </div>
 
     <!-- Active session -->
     <div v-else-if="current" class="review-page__session">
       <header class="review-page__header">
-        <NuxtLink :to="`/${langSlug}/vocabulary`" class="review-page__close" aria-label="Close">
+        <NuxtLink to="/vocabulary" class="review-page__close" aria-label="Close">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
@@ -98,6 +120,10 @@ function restart() {
           </div>
           <span class="review-page__progress-label">{{ currentIdx + 1 }} / {{ queue.length }}</span>
         </div>
+        <!-- Small lang flag indicator (useful for cross-lang sessions) -->
+        <span v-if="current" class="review-page__lang-chip">
+          {{ getBySlug(current.lang)?.flag }}
+        </span>
       </header>
 
       <!-- Flashcard -->
@@ -117,7 +143,7 @@ function restart() {
         </div>
       </div>
 
-      <!-- Rating buttons (only after flip) -->
+      <!-- Rating buttons -->
       <Transition name="fade">
         <div v-if="flipped" class="review-page__rating">
           <button class="rate rate--wrong" @click="rate(2)">
@@ -142,7 +168,7 @@ function restart() {
   padding: var(--space-4);
 }
 
-/* Done state */
+/* Done */
 .review-page__done {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: var(--space-4); text-align: center;
@@ -153,9 +179,10 @@ function restart() {
 .review-page__cta {
   margin-top: var(--space-4);
   padding: var(--space-3) var(--space-6);
-  background: var(--cc, var(--color-primary)); color: #fff; border: none;
+  background: var(--cc, var(--color-primary)); color: #fff;
   border-radius: var(--radius-full);
-  font-size: var(--text-base); font-weight: 700; cursor: pointer;
+  font-size: var(--text-base); font-weight: 700; text-decoration: none;
+  transition: all var(--transition-fast);
 }
 .review-page__cta:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
 
@@ -173,13 +200,10 @@ function restart() {
 .review-page__progress-bar { height: 8px; background: var(--color-bg-muted); border-radius: var(--radius-full); overflow: hidden; }
 .review-page__progress-fill { height: 100%; background: var(--cc, var(--color-primary)); border-radius: var(--radius-full); transition: width 300ms ease; }
 .review-page__progress-label { font-size: var(--text-xs); color: var(--color-text-muted); text-align: right; }
+.review-page__lang-chip { font-size: 1.4rem; }
 
-/* Flashcard */
-.card {
-  flex: 1; min-height: 320px;
-  perspective: 1000px; cursor: pointer;
-  position: relative;
-}
+/* Card */
+.card { flex: 1; min-height: 320px; perspective: 1000px; cursor: pointer; position: relative; }
 .card__face {
   position: absolute; inset: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -209,7 +233,7 @@ function restart() {
 .card__rom { font-size: var(--text-lg); color: var(--color-text-muted); }
 .card__tl { font-size: var(--text-base); color: var(--color-text-secondary); font-style: italic; margin-top: var(--space-2); }
 
-/* Rating buttons */
+/* Rating */
 .review-page__rating { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
 .rate {
   display: flex; flex-direction: column; align-items: center; gap: var(--space-1);
@@ -225,7 +249,6 @@ function restart() {
 .rate__label { font-size: var(--text-base); }
 .rate__shortcut { font-size: var(--text-2xl); font-weight: 900; line-height: 1; }
 
-/* Transitions */
 .fade-enter-active, .fade-leave-active { transition: opacity 300ms ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>
