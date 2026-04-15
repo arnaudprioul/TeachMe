@@ -10,6 +10,7 @@ const auth = useAuthStore()
 const identifier = ref('')
 const username = ref('')
 const password = ref('')
+const confirmPassword = ref('')
 const error = ref('')
 const loading = ref(false)
 
@@ -18,7 +19,9 @@ const inputType = computed(() => !identifier.value ? 'text' : isEmail.value ? 'e
 const identifierLabel = computed(() => !identifier.value ? t('auth.identifierLabel') : isEmail.value ? t('auth.email') : t('auth.phone'))
 
 async function submit() {
-  error.value = ''; loading.value = true
+  error.value = ''
+  if (password.value !== confirmPassword.value) { error.value = t('auth.passwordsMismatch'); return }
+  loading.value = true
   try { await auth.register(identifier.value, username.value, password.value); await navigateTo('/auth/verify') }
   catch (e: any) { error.value = e?.data?.statusMessage || e?.message || t('common.error') }
   finally { loading.value = false }
@@ -48,6 +51,10 @@ async function submit() {
       <div class="field">
         <label class="field__label" for="password">{{ t('auth.password') }}</label>
         <input id="password" v-model="password" :placeholder="t('auth.passwordPlaceholder')" autocomplete="new-password" class="field__input" data-cy="input-password" minlength="8" required type="password" />
+      </div>
+      <div class="field">
+        <label class="field__label" for="confirmPassword">{{ t('auth.confirmPassword') }}</label>
+        <input id="confirmPassword" v-model="confirmPassword" :placeholder="t('auth.confirmPasswordPlaceholder')" autocomplete="new-password" class="field__input" data-cy="input-confirm-password" minlength="8" required type="password" />
       </div>
       <div v-if="error" class="alert alert--error">{{ error }}</div>
       <button :disabled="loading" class="btn btn--primary btn--full" data-cy="btn-submit" type="submit">

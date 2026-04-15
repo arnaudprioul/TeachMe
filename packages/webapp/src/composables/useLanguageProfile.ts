@@ -67,8 +67,15 @@ const PROFILES: Record<string, ILanguageProfile> = {
   },
 }
 
+/**
+ * Icon shown on the language landing page next to the course title.
+ * Keyed by course slug, with a fallback '?' for unknown courses.
+ * Note: courses that share a slug across languages (e.g. 'level-1') use the
+ * same icon — acceptable since the language context is already clear.
+ */
 const COURSE_ICONS: Record<string, string> = {
   hangeul: '한',
+  'level-1': '1',
   hiragana: 'あ',
   katakana: 'ア',
   pinyin: '汉',

@@ -48,7 +48,7 @@ const characterGroups = computed(() => {
     .map(cat => ({
       id: cat.id,
       labelKey: cat.labelKey,
-      chars: m.characters.filter(c => cat.matches(c)),
+      chars: (m.characters ?? []).filter(c => cat.matches(c)),
     }))
     .filter(g => g.chars.length > 0)
 })

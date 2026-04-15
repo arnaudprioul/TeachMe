@@ -2,14 +2,28 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCourseContext } from '~/composables/useCourseContext'
+import { useLessonProgressStore } from '~/stores/lesson-progress.store'
 import type { ICourseCharacter } from '~/composables/data/courses/types'
 
 definePageMeta({ layout: 'default', middleware: 'auth' })
 
 const { t } = useI18n()
-const { lang, language, module, paths, tKey } = useCourseContext()
+const { lang, courseKey, language, module, paths, tKey } = useCourseContext()
+const progressStore = useLessonProgressStore()
 
 const course = computed(() => language.value!)
+
+// ── Level-based course detection ──
+const isLevelCourse = computed(() => !!module.value?.levelIntro)
+const lessons = computed(() => module.value?.lessons ?? [])
+const totalWords = computed(() => lessons.value.reduce((sum, l) => sum + l.words.length, 0))
+const completedLessons = computed(() => lessons.value.filter(l => progressStore.isCompleted(courseKey.value, l.id)).length)
+const progressPercent = computed(() => lessons.value.length > 0 ? Math.round((completedLessons.value / lessons.value.length) * 100) : 0)
+const hasStarted = computed(() => completedLessons.value > 0)
+const nextLessonId = computed(() => {
+  const next = lessons.value.find(l => !progressStore.isCompleted(courseKey.value, l.id))
+  return next?.id ?? lessons.value[0]?.id ?? 1
+})
 
 // ── Landing-page section flags (each section is rendered iff its flag
 //    on the course config is true). Default false so a brand-new course
@@ -45,7 +59,7 @@ const characterSections = computed<ISectionGroup[]>(() => {
     .map(cat => ({
       id: cat.id,
       labelKey: cat.labelKey,
-      chars: m.characters.filter(c => cat.matches(c)),
+      chars: (m.characters ?? []).filter(c => cat.matches(c)),
     }))
     .filter(g => g.chars.length > 0)
 })
@@ -84,7 +98,133 @@ const heroCloud = computed(() => {
 </script>
 
 <template>
-  <div class="lp" :style="{ '--cc': course?.color, '--cc-s': course?.colorSubtle }">
+  <!-- ════════════════════════════════════════════════════════════════
+       LEVEL-BASED COURSE (vocabulary lessons)
+       ════════════════════════════════════════════════════════════════ -->
+  <div v-if="isLevelCourse" class="lvl" :style="{ '--cc': course?.color, '--cc-s': course?.colorSubtle }">
+
+    <div class="contained bc-row">
+      <Breadcrumb :items="[
+        { label: t('nav.dashboard'), to: '/dashboard' },
+        { label: t(`courses.${lang}.name`), to: paths.languageRoot },
+        { label: t(tKey('title')) },
+      ]" />
+    </div>
+
+    <!-- Hero -->
+    <section class="lvl-hero">
+      <!-- Floating decorative Korean characters -->
+      <div class="lvl-hero__deco" aria-hidden="true">
+        <span class="lvl-float" style="top:8%;left:6%;font-size:2.6rem;animation-delay:0s">안</span>
+        <span class="lvl-float" style="top:15%;right:10%;font-size:1.8rem;animation-delay:1.2s">녕</span>
+        <span class="lvl-float" style="top:55%;left:3%;font-size:2rem;animation-delay:0.6s">감</span>
+        <span class="lvl-float" style="top:70%;right:5%;font-size:2.4rem;animation-delay:1.8s">사</span>
+        <span class="lvl-float" style="top:35%;right:15%;font-size:1.6rem;animation-delay:0.3s">네</span>
+        <span class="lvl-float" style="bottom:10%;left:12%;font-size:1.9rem;animation-delay:1.5s">주</span>
+      </div>
+
+      <div class="lvl-hero__inner contained">
+        <span class="lvl-hero__flag">{{ course?.flag }}</span>
+        <span v-if="module?.config.officialLevel" class="lvl-hero__badge">{{ module.config.officialLevel }}</span>
+        <h1>{{ t(tKey('title')) }}</h1>
+        <p class="lvl-hero__desc">{{ t(module!.levelIntro!.descriptionKey) }}</p>
+
+        <div class="lvl-hero__stats">
+          <div class="lvl-stat-card">
+            <span class="lvl-stat-card__value">{{ lessons.length }}</span>
+            <span class="lvl-stat-card__label">{{ t('levels.lessonsCount', { n: '' }).trim() }}</span>
+          </div>
+          <div class="lvl-stat-card">
+            <span class="lvl-stat-card__value">{{ totalWords }}</span>
+            <span class="lvl-stat-card__label">{{ t('levels.wordsCount', { n: '' }).trim() }}</span>
+          </div>
+          <div v-if="module?.config.estimatedDuration" class="lvl-stat-card">
+            <span class="lvl-stat-card__value">{{ module.config.estimatedDuration }}</span>
+            <span class="lvl-stat-card__label">{{ t('levels.progress') }}</span>
+          </div>
+        </div>
+
+        <button class="lvl-hero__cta" @click="navigateTo(paths.lesson(nextLessonId))">
+          {{ hasStarted ? t('levels.continueLearning') : t('levels.startLearning') }}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- Progress card -->
+    <section class="lvl-progress contained">
+      <div class="lvl-progress__card">
+        <div class="lvl-progress__top">
+          <div class="lvl-progress__info">
+            <h2>{{ t('levels.progress') }}</h2>
+            <span class="lvl-progress__count">{{ t('levels.lessonsCompleted', { completed: completedLessons, total: lessons.length }) }}</span>
+          </div>
+          <span class="lvl-progress__pct">{{ progressPercent }}%</span>
+        </div>
+        <div class="lvl-progress__bar">
+          <div class="lvl-progress__fill" :style="{ width: `${progressPercent}%` }" />
+        </div>
+      </div>
+    </section>
+
+    <!-- What you'll learn -->
+    <section v-if="module?.levelIntro?.objectiveKeys?.length" class="lvl-objectives contained">
+      <div class="lvl-objectives__header">
+        <span class="lvl-objectives__chip">{{ course?.flag }}</span>
+        <h2>{{ t('levels.whatYouWillLearn') }}</h2>
+      </div>
+      <div class="lvl-objectives__grid">
+        <div v-for="(key, i) in module.levelIntro.objectiveKeys" :key="i" class="lvl-obj" :class="{ 'lvl-obj--done': i < completedLessons }">
+          <span class="lvl-obj__num">{{ i + 1 }}</span>
+          <span class="lvl-obj__text">{{ t(key) }}</span>
+          <svg v-if="i < completedLessons" class="lvl-obj__check" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- About this level (official level info) -->
+    <section v-if="module?.levelIntro?.officialLevelInfoKey" class="lvl-about">
+      <div class="contained">
+        <div class="lvl-about__card">
+          <div class="lvl-about__head">
+            <span class="lvl-about__badge">{{ module.config.officialLevel }}</span>
+            <h2>{{ t('levels.aboutLevel') }}</h2>
+          </div>
+          <p class="lvl-about__text">{{ t(module.levelIntro.officialLevelInfoKey) }}</p>
+          <a
+            v-if="module.levelIntro.officialLevelLink"
+            :href="module.levelIntro.officialLevelLink"
+            target="_blank" rel="noopener noreferrer"
+            class="lvl-about__link"
+          >
+            {{ t('levels.officialSite') }}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Lessons -->
+    <section class="lvl-lessons contained">
+      <h2>{{ t(tKey('lessons.title')) }}</h2>
+      <div class="lvl-lessons__grid">
+        <LessonCard
+          v-for="lesson in lessons"
+          :key="lesson.id"
+          :lesson="lesson"
+          :progress="progressStore.getProgress(courseKey, lesson.id)"
+          :unlocked="progressStore.isUnlocked(courseKey, lesson.id)"
+          :locale-prefix="module!.config.localePrefix"
+          @click="progressStore.isUnlocked(courseKey, lesson.id) && navigateTo(paths.lesson(lesson.id))"
+        />
+      </div>
+    </section>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       CHARACTER-BASED COURSE (Hangeul, Hiragana, Katakana…)
+       ════════════════════════════════════════════════════════════════ -->
+  <div v-else class="lp" :style="{ '--cc': course?.color, '--cc-s': course?.colorSubtle }">
 
     <div class="contained bc-row">
       <Breadcrumb :items="[
@@ -587,5 +727,163 @@ const heroCloud = computed(() => {
   .eq-row { flex-direction: column; align-items: center; }
   .shape-row { grid-template-columns: 1fr; }
   .rule-demo__c { font-size: 2rem; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   LEVEL-BASED COURSE LANDING
+   ══════════════════════════════════════════════════════════════════ */
+.lvl { display: flex; flex-direction: column; padding-bottom: var(--space-16); }
+
+/* Hero */
+.lvl-hero {
+  position: relative; overflow: hidden;
+  background: linear-gradient(160deg, var(--cc) 0%, color-mix(in srgb, var(--cc) 65%, #1a1035) 100%);
+  padding: var(--space-16) 0 var(--space-12);
+  color: #fff; text-align: center;
+}
+.lvl-hero__deco { position: absolute; inset: 0; pointer-events: none; }
+.lvl-float {
+  position: absolute; font-family: var(--font-cjk-kr); font-weight: 600;
+  color: rgba(255,255,255,0.08); animation: lvl-bob 6s ease-in-out infinite;
+}
+@keyframes lvl-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+.lvl-hero__inner {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-4);
+}
+.lvl-hero__flag { font-size: 3rem; line-height: 1; }
+.lvl-hero__badge {
+  display: inline-block; padding: var(--space-1) var(--space-4);
+  background: rgba(255,255,255,0.15); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.2); border-radius: var(--radius-full);
+  font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+}
+.lvl-hero h1 { font-size: var(--text-4xl); font-weight: 800; margin: 0; letter-spacing: -0.02em; }
+.lvl-hero__desc {
+  font-size: var(--text-base); opacity: 0.85; max-width: 480px; line-height: 1.7;
+}
+
+/* Stat cards in hero */
+.lvl-hero__stats { display: flex; gap: var(--space-4); margin-top: var(--space-4); }
+.lvl-stat-card {
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-1);
+  padding: var(--space-3) var(--space-5);
+  background: rgba(255,255,255,0.1); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.15); border-radius: var(--radius-xl);
+}
+.lvl-stat-card__value { font-size: var(--text-xl); font-weight: 800; }
+.lvl-stat-card__label { font-size: var(--text-xs); opacity: 0.7; text-transform: lowercase; }
+
+/* Hero CTA */
+.lvl-hero__cta {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  margin-top: var(--space-6);
+  padding: var(--space-3) var(--space-8);
+  background: #fff; color: var(--cc); border: none; border-radius: var(--radius-full);
+  font-size: var(--text-base); font-weight: 700; cursor: pointer;
+  transition: all var(--transition-fast); box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+}
+.lvl-hero__cta:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+.lvl-hero__cta svg { transition: transform var(--transition-fast); }
+.lvl-hero__cta:hover svg { transform: translateX(4px); }
+
+/* Progress card */
+.lvl-progress { margin-top: calc(-1 * var(--space-8)); position: relative; z-index: 2; }
+.lvl-progress__card {
+  background: var(--color-bg-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl); padding: var(--space-6);
+  box-shadow: var(--shadow-lg); display: flex; flex-direction: column; gap: var(--space-4);
+}
+.lvl-progress__top { display: flex; justify-content: space-between; align-items: center; }
+.lvl-progress__info { display: flex; flex-direction: column; gap: var(--space-1); }
+.lvl-progress__info h2 { font-size: var(--text-base); font-weight: 600; color: var(--color-text); margin: 0; }
+.lvl-progress__count { font-size: var(--text-sm); color: var(--color-text-muted); }
+.lvl-progress__pct { font-size: var(--text-2xl); font-weight: 800; color: var(--cc); }
+.lvl-progress__bar {
+  height: 10px; background: var(--color-bg-muted); border-radius: var(--radius-full); overflow: hidden;
+}
+.lvl-progress__fill {
+  height: 100%; border-radius: var(--radius-full);
+  background: linear-gradient(90deg, var(--cc), color-mix(in srgb, var(--cc) 70%, #fff));
+  transition: width 600ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Objectives */
+.lvl-objectives { margin-top: var(--space-10); }
+.lvl-objectives__header {
+  display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-5);
+}
+.lvl-objectives__chip { font-size: 1.4rem; }
+.lvl-objectives__header h2 { font-size: var(--text-xl); font-weight: 700; color: var(--color-text); margin: 0; }
+.lvl-objectives__grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3);
+}
+.lvl-obj {
+  position: relative; display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-bg-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl); transition: all var(--transition-fast);
+}
+.lvl-obj:hover { border-color: var(--cc); box-shadow: var(--shadow-sm); }
+.lvl-obj--done { border-color: var(--color-success); background: #f0fdf4; }
+.lvl-obj__num {
+  width: 28px; height: 28px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--cc-s); color: var(--cc); border-radius: var(--radius-full);
+  font-size: var(--text-xs); font-weight: 800;
+}
+.lvl-obj--done .lvl-obj__num { background: var(--color-success); color: #fff; }
+.lvl-obj__text { font-size: var(--text-sm); font-weight: 500; color: var(--color-text); flex: 1; }
+.lvl-obj--done .lvl-obj__text { color: var(--color-text-muted); }
+.lvl-obj__check { color: var(--color-success); flex-shrink: 0; }
+
+/* Lessons */
+.lvl-lessons { margin-top: var(--space-10); }
+.lvl-lessons h2 { font-size: var(--text-xl); font-weight: 700; color: var(--color-text); margin: 0 0 var(--space-5); }
+
+/* About this level */
+.lvl-about { margin-top: var(--space-10); }
+.lvl-about__card {
+  padding: var(--space-6) var(--space-7);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  position: relative;
+}
+.lvl-about__card::before {
+  content: ''; position: absolute; top: 0; left: var(--space-7); width: 48px; height: 3px;
+  background: var(--cc, var(--color-primary)); border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+.lvl-about__head {
+  display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3);
+}
+.lvl-about__badge {
+  font-size: var(--text-xs); font-weight: 800; color: var(--cc, var(--color-primary));
+  background: var(--cc-s, var(--color-primary-subtle));
+  padding: 2px var(--space-3); border-radius: var(--radius-full);
+  letter-spacing: 0.05em; text-transform: uppercase;
+}
+.lvl-about__head h2 { font-size: var(--text-base); font-weight: 700; color: var(--color-text); margin: 0; }
+.lvl-about__text {
+  margin: 0; font-size: var(--text-sm); line-height: 1.75; color: var(--color-text-secondary);
+}
+.lvl-about__link {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  margin-top: var(--space-4);
+  font-size: var(--text-sm); font-weight: 600; color: var(--cc, var(--color-primary));
+  text-decoration: none;
+}
+.lvl-about__link:hover { text-decoration: underline; }
+.lvl-lessons__grid { display: flex; flex-direction: column; gap: var(--space-3); }
+
+@media (max-width: 640px) {
+  .lvl-hero { padding: var(--space-10) 0 var(--space-8); }
+  .lvl-hero h1 { font-size: var(--text-2xl); }
+  .lvl-hero__stats { flex-direction: column; gap: var(--space-2); }
+  .lvl-objectives__grid { grid-template-columns: 1fr; }
+  .lvl-hero__cta { width: 100%; justify-content: center; }
 }
 </style>

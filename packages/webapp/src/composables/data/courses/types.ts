@@ -148,6 +148,11 @@ export interface ICourseConfig {
   // section.
   tableGrids?: ICourseTableGrid[]
 
+  /** Official proficiency level label (e.g. "TOPIK I", "JLPT N5"). */
+  officialLevel?: string
+  /** Estimated total duration (e.g. "~10 hours"). */
+  estimatedDuration?: string
+
   // Landing page sections (each is rendered iff its flag is true).
   /** "1443 — King Sejong" / Hunminjeongeum-style origin story block. */
   hasOriginStory?: boolean
@@ -168,10 +173,16 @@ export interface ICourseModule {
   key: string             // `${lang}-${course}`
   lang: string
   course: string
-  characters: ICourseCharacter[]
-  strokes: Record<string, ICharStrokes>
-  phonetics: PhoneticsMap
-  speech: Record<string, string>
+  /** Character-based courses (Hangeul, Hiragana…) populate these.
+   *  Vocabulary-only courses can leave them empty. */
+  characters?: ICourseCharacter[]
+  strokes?: Record<string, ICharStrokes>
+  phonetics?: PhoneticsMap
+  speech?: Record<string, string>
   syllables?: ISyllableComposer
+  /** Lesson-based courses (vocabulary) populate this. */
+  lessons?: import('./lesson-types').ILesson[]
+  /** Level intro data shown on the landing page. */
+  levelIntro?: import('./lesson-types').ILevelIntro
   config: ICourseConfig
 }

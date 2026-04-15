@@ -3,6 +3,10 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-01-01',
   devtools: { enabled: true },
   srcDir: 'src/',
+  // Nitro defaults `serverDir` to `<rootDir>/server`, which doesn't follow
+  // `srcDir`. Without this override, NO server/api/* handlers get discovered
+  // and every API request falls through to the SPA catch-all.
+  serverDir: 'src/server',
   devServer: { port: 5001 },
 
   // SPA mode — the webapp is wrapped by Tauri, no SEO need.

@@ -30,9 +30,20 @@ export async function initDb(): Promise<void> {
   }
 
   await migrate(_db)
+
+  // Seed lessons from static TS data on every boot (TS is the source of
+  // truth during iteration; DB is a read-through mirror).
+  // Set `TEACHME_SKIP_SEED=1` to disable — useful when testing DB-only edits.
+  if (process.env.TEACHME_SKIP_SEED !== '1') {
+    const { seedLessons } = await import('./seed-lessons')
+    await seedLessons(_db)
+  }
 }
 
 async function migrate(db: ReturnType<typeof knex>): Promise<void> {
+  // ═══════════════════════════════════════════════════════
+  // USERS
+  // ═══════════════════════════════════════════════════════
   if (!(await db.schema.hasTable('users'))) {
     await db.schema.createTable('users', (t) => {
       t.string('id').primary()
@@ -45,7 +56,6 @@ async function migrate(db: ReturnType<typeof knex>): Promise<void> {
       t.timestamp('updated_at').defaultTo(db.fn.now())
     })
   } else {
-    // Add columns added after initial creation (idempotent)
     const hasPhone = await db.schema.hasColumn('users', 'phone')
     if (!hasPhone) await db.schema.alterTable('users', (t) => { t.string('phone').unique().nullable() })
     const hasVerified = await db.schema.hasColumn('users', 'verified')
@@ -54,6 +64,9 @@ async function migrate(db: ReturnType<typeof knex>): Promise<void> {
     if (!hasUpdatedAt) await db.schema.alterTable('users', (t) => { t.timestamp('updated_at').defaultTo(db.fn.now()) })
   }
 
+  // ═══════════════════════════════════════════════════════
+  // QUIZ RESULTS (legacy, kept for character training)
+  // ═══════════════════════════════════════════════════════
   if (!(await db.schema.hasTable('quiz_results'))) {
     await db.schema.createTable('quiz_results', (t) => {
       t.string('id').primary()
@@ -62,6 +75,153 @@ async function migrate(db: ReturnType<typeof knex>): Promise<void> {
       t.boolean('correct').notNullable()
       t.string('mode').notNullable()
       t.timestamp('created_at').defaultTo(db.fn.now())
+    })
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // LANGUAGES
+  // ═══════════════════════════════════════════════════════
+  if (!(await db.schema.hasTable('languages'))) {
+    await db.schema.createTable('languages', (t) => {
+      t.string('id').primary()
+      t.string('flag').notNullable()
+      t.string('color').notNullable()
+      t.string('color_light').notNullable()
+      t.string('color_subtle').notNullable()
+      t.string('status').notNullable().defaultTo('available')
+      t.integer('sort_order').notNullable().defaultTo(0)
+      t.timestamp('created_at').defaultTo(db.fn.now())
+      t.timestamp('updated_at').defaultTo(db.fn.now())
+    })
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // COURSES
+  // ═══════════════════════════════════════════════════════
+  if (!(await db.schema.hasTable('courses'))) {
+    await db.schema.createTable('courses', (t) => {
+      t.string('id').primary()
+      t.string('language_id').notNullable().references('id').inTable('languages').onDelete('CASCADE')
+      t.string('slug').notNullable()
+      t.string('kind').notNullable() // 'characters' | 'lessons'
+      t.string('locale_prefix').notNullable()
+      t.string('tts_lang').notNullable()
+      t.json('tts_voice_prefs').notNullable()
+      t.string('official_level').nullable()
+      t.string('estimated_duration').nullable()
+      t.string('hero_image').nullable()
+      t.integer('sort_order').notNullable().defaultTo(0)
+      t.boolean('has_origin_story').notNullable().defaultTo(false)
+      t.boolean('has_cosmology').notNullable().defaultTo(false)
+      t.boolean('has_silent_initial_rule').notNullable().defaultTo(false)
+      t.boolean('has_syllable_composition').notNullable().defaultTo(false)
+      t.timestamp('created_at').defaultTo(db.fn.now())
+      t.timestamp('updated_at').defaultTo(db.fn.now())
+      t.index(['language_id'])
+    })
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // LEVEL INTROS
+  // ═══════════════════════════════════════════════════════
+  if (!(await db.schema.hasTable('level_intros'))) {
+    await db.schema.createTable('level_intros', (t) => {
+      t.string('course_id').primary().references('id').inTable('courses').onDelete('CASCADE')
+      t.string('description_key').notNullable()
+      t.json('objective_keys').notNullable()
+      t.string('official_level_info_key').nullable()
+      t.string('official_level_link').nullable()
+      t.timestamp('created_at').defaultTo(db.fn.now())
+      t.timestamp('updated_at').defaultTo(db.fn.now())
+    })
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // LESSONS
+  // ═══════════════════════════════════════════════════════
+  if (!(await db.schema.hasTable('lessons'))) {
+    await db.schema.createTable('lessons', (t) => {
+      t.string('id').primary()
+      t.string('course_id').notNullable().references('id').inTable('courses').onDelete('CASCADE')
+      t.integer('lesson_number').notNullable()
+      t.string('theme_key').notNullable()
+      t.integer('sort_order').notNullable().defaultTo(0)
+      t.timestamp('created_at').defaultTo(db.fn.now())
+      t.timestamp('updated_at').defaultTo(db.fn.now())
+      t.unique(['course_id', 'lesson_number'])
+      t.index(['course_id'])
+    })
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // LESSON WORDS
+  // ═══════════════════════════════════════════════════════
+  if (!(await db.schema.hasTable('lesson_words'))) {
+    await db.schema.createTable('lesson_words', (t) => {
+      t.string('id').notNullable()
+      t.string('lesson_id').notNullable().references('id').inTable('lessons').onDelete('CASCADE')
+      t.string('word').notNullable()
+      t.string('romanization').notNullable()
+      t.string('translation_en').notNullable()
+      t.string('translation_fr').notNullable()
+      t.string('image_path').nullable()
+      t.string('emoji').nullable()
+      t.string('audio_text').nullable()
+      t.integer('sort_order').notNullable().defaultTo(0)
+      t.timestamp('created_at').defaultTo(db.fn.now())
+      t.timestamp('updated_at').defaultTo(db.fn.now())
+      t.primary(['lesson_id', 'id'])
+    })
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // LESSON CONTENT BLOCKS
+  // ═══════════════════════════════════════════════════════
+  if (!(await db.schema.hasTable('lesson_content_blocks'))) {
+    await db.schema.createTable('lesson_content_blocks', (t) => {
+      t.string('id').primary()
+      t.string('lesson_id').notNullable().references('id').inTable('lessons').onDelete('CASCADE')
+      t.string('block_type').notNullable()
+      t.integer('sort_order').notNullable()
+      t.json('data').notNullable()
+      t.timestamp('created_at').defaultTo(db.fn.now())
+      t.timestamp('updated_at').defaultTo(db.fn.now())
+      t.index(['lesson_id'])
+    })
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // LESSON EXERCISES
+  // ═══════════════════════════════════════════════════════
+  if (!(await db.schema.hasTable('lesson_exercises'))) {
+    await db.schema.createTable('lesson_exercises', (t) => {
+      t.string('id').notNullable()
+      t.string('lesson_id').notNullable().references('id').inTable('lessons').onDelete('CASCADE')
+      t.string('exercise_type').notNullable()
+      t.string('difficulty').notNullable()
+      t.integer('sort_order').notNullable().defaultTo(0)
+      t.json('data').notNullable()
+      t.timestamp('created_at').defaultTo(db.fn.now())
+      t.timestamp('updated_at').defaultTo(db.fn.now())
+      t.primary(['lesson_id', 'id'])
+    })
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // USER LESSON PROGRESS
+  // ═══════════════════════════════════════════════════════
+  if (!(await db.schema.hasTable('user_lesson_progress'))) {
+    await db.schema.createTable('user_lesson_progress', (t) => {
+      t.string('id').primary()
+      t.string('user_id').notNullable().references('id').inTable('users').onDelete('CASCADE')
+      t.string('lesson_id').notNullable().references('id').inTable('lessons').onDelete('CASCADE')
+      t.boolean('completed').notNullable().defaultTo(false)
+      t.integer('best_score').notNullable().defaultTo(0)
+      t.integer('attempts').notNullable().defaultTo(0)
+      t.timestamp('last_attempt_at').nullable()
+      t.timestamp('created_at').defaultTo(db.fn.now())
+      t.timestamp('updated_at').defaultTo(db.fn.now())
+      t.unique(['user_id', 'lesson_id'])
     })
   }
 }

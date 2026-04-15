@@ -8,7 +8,7 @@ export interface ICourse {
   status: 'available' | 'coming_soon'
 }
 
-const COURSES: ICourse[] = [
+export const COURSES: ICourse[] = [
   {
     slug: 'korean',
     flag: '\u{1F1F0}\u{1F1F7}',
