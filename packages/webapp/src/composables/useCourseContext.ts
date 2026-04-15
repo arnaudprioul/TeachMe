@@ -76,6 +76,7 @@ export function useCourseContext() {
     lessonQuiz:   (id: number) => `${basePath.value}/lessons/${id}/quiz`,
     lessonResults:(id: number) => `${basePath.value}/lessons/${id}/results`,
     lessonExercises:(id: number) => `${basePath.value}/lessons/${id}/exercises`,
+    lessonExercisesResults: (id: number) => `${basePath.value}/lessons/${id}/exercises/results`,
   }))
 
   /** Returns a fully-qualified locale key under the course's localePrefix. */

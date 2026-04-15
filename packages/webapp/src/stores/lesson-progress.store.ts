@@ -1,15 +1,28 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { ILessonProgress } from '~/composables/data/courses/lesson-types'
+import type { ILessonProgress, TExerciseDifficulty } from '~/composables/data/courses/lesson-types'
 
 const STORAGE_KEY = 'teachme_lesson_progress'
+const EXERCISES_KEY = 'teachme_exercise_progress'
 
 function progressKey(courseKey: string, lessonId: number): string {
   return `${courseKey}:${lessonId}`
 }
 
+function exerciseKey(courseKey: string, lessonId: number, difficulty: TExerciseDifficulty): string {
+  return `${courseKey}:${lessonId}:${difficulty}`
+}
+
+export interface IExerciseProgress {
+  bestScore: number
+  bestStreak: number
+  attempts: number
+  lastAttemptAt: number | null
+}
+
 export const useLessonProgressStore = defineStore('lesson-progress', () => {
   const byLesson = ref<Record<string, ILessonProgress>>({})
+  const byExercise = ref<Record<string, IExerciseProgress>>({})
 
   function load() {
     if (typeof localStorage === 'undefined') return
@@ -17,11 +30,16 @@ export const useLessonProgressStore = defineStore('lesson-progress', () => {
       const raw = localStorage.getItem(STORAGE_KEY)
       if (raw) byLesson.value = JSON.parse(raw)
     } catch {}
+    try {
+      const raw = localStorage.getItem(EXERCISES_KEY)
+      if (raw) byExercise.value = JSON.parse(raw)
+    } catch {}
   }
 
   function persist() {
     if (typeof localStorage === 'undefined') return
     localStorage.setItem(STORAGE_KEY, JSON.stringify(byLesson.value))
+    localStorage.setItem(EXERCISES_KEY, JSON.stringify(byExercise.value))
   }
 
   function recordAttempt(courseKey: string, lessonId: number, scorePercent: number) {
@@ -66,7 +84,42 @@ export const useLessonProgressStore = defineStore('lesson-progress', () => {
     return true
   }
 
+  // ── Exercise progress per difficulty ──
+
+  function recordExerciseAttempt(
+    courseKey: string, lessonId: number, difficulty: TExerciseDifficulty,
+    params: { scorePercent: number; bestStreak: number },
+  ) {
+    const key = exerciseKey(courseKey, lessonId, difficulty)
+    const existing = byExercise.value[key] ?? {
+      bestScore: 0, bestStreak: 0, attempts: 0, lastAttemptAt: null,
+    }
+    byExercise.value[key] = {
+      bestScore: Math.max(existing.bestScore, params.scorePercent),
+      bestStreak: Math.max(existing.bestStreak, params.bestStreak),
+      attempts: existing.attempts + 1,
+      lastAttemptAt: Date.now(),
+    }
+    persist()
+  }
+
+  function getExerciseProgress(courseKey: string, lessonId: number, difficulty: TExerciseDifficulty): IExerciseProgress {
+    const key = exerciseKey(courseKey, lessonId, difficulty)
+    return byExercise.value[key] ?? {
+      bestScore: 0, bestStreak: 0, attempts: 0, lastAttemptAt: null,
+    }
+  }
+
   load()
 
-  return { byLesson, recordAttempt, getProgress, isCompleted, isUnlocked }
+  return {
+    byLesson,
+    byExercise,
+    recordAttempt,
+    getProgress,
+    isCompleted,
+    isUnlocked,
+    recordExerciseAttempt,
+    getExerciseProgress,
+  }
 })

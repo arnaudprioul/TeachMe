@@ -672,7 +672,17 @@
     "characters": "Characters",
     "modeSelect": "Pick",
     "modeWrite": "Write",
-    "modeSpeak": "Listen"
+    "modeSpeak": "Listen",
+    "tapWords": "Tap the words in order",
+    "yourAnswer": "Your answer",
+    "availableWords": "Available words",
+    "retry": "Try again",
+    "showAnswer": "Show answer",
+    "exercisesResultsTitle": "Exercises complete!",
+    "reviewAll": "Review all questions",
+    "backToLesson": "Back to lesson",
+    "tryHarder": "Try the harder level",
+    "tryAttempts": "tries"
   },
   "levels": {
     "whatYouWillLearn": "What you'll learn",

@@ -672,7 +672,17 @@
     "characters": "Personnages",
     "modeSelect": "Choisir",
     "modeWrite": "Écrire",
-    "modeSpeak": "Écouter"
+    "modeSpeak": "Écouter",
+    "tapWords": "Tape les mots dans l'ordre",
+    "yourAnswer": "Ta réponse",
+    "availableWords": "Mots disponibles",
+    "retry": "Réessayer",
+    "showAnswer": "Voir la réponse",
+    "exercisesResultsTitle": "Exercices terminés !",
+    "reviewAll": "Revoir toutes les questions",
+    "backToLesson": "Retour à la leçon",
+    "tryHarder": "Essayer le niveau supérieur",
+    "tryAttempts": "essais"
   },
   "levels": {
     "whatYouWillLearn": "Ce que tu vas apprendre",
