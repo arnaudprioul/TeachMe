@@ -10,7 +10,7 @@
 - **Nitro** — integrated server (API routes, middleware, plugins)
 - **Tauri 2** — native desktop app (`packages/desktop`)
 - **ioredis** — Redis client (OTP sessions)
-- **nodemailer** — email via Mailhog (dev) or SMTP (prod)
+- **nodemailer** — email via Mailpit (dev) or SMTP (prod)
 - **Vite 6** — dev server on port 5000
 
 ## Commands
@@ -21,7 +21,7 @@ npm run dev              # frontend (3000) + webapp (5000) concurrently
 npm run dev:frontend     # Landing only  (port 3000)
 npm run dev:webapp       # Webapp only   (port 5000)
 
-# ── Docker: infra only (postgres + redis + mailhog) ───────────────
+# ── Docker: infra only (postgres + redis + mailpit) ───────────────
 npm run docker:infra
 npm run docker:infra:down
 
@@ -54,8 +54,8 @@ npm run dev / build / typecheck / clean
 | Tauri devUrl | **5001**  | Wraps webapp                 |
 | PostgreSQL   | **5433**  | container internal: 5432     |
 | Redis        | **5379**  | container internal: 6379     |
-| Mailhog UI   | **5080**  | Web inbox                    |
-| Mailhog SMTP | **5025**  | container internal: 1025     |
+| Mailpit UI   | **5080**  | Web inbox                    |
+| Mailpit SMTP | **5025**  | container internal: 1025     |
 
 ## Project Structure
 
@@ -97,7 +97,7 @@ packages/
             ├── auth.ts           # signToken, verifyToken, hashPassword
             ├── redis.ts          # ioredis singleton
             ├── otp.ts            # OTP generate/verify (Redis-backed)
-            ├── mailer.ts         # nodemailer → Mailhog/SMTP
+            ├── mailer.ts         # nodemailer → Mailpit/SMTP
             ├── sms.ts            # Twilio or console mock
             └── sm2.ts            # SM-2 spaced repetition algorithm
   desktop/      — Tauri 2 shell (wraps webapp at port 5000)
@@ -127,7 +127,7 @@ packages/
 - **frontend vs webapp** — `packages/frontend` = landing (no auth, no DB, links to webapp via `APP_URL`). `packages/webapp` = the actual app. **Never add server/DB code to frontend.**
 - **Tauri wraps webapp** — `devUrl: http://localhost:5000`, `frontendDist: ../../webapp/.output/public`
 - **Tauri icons must be RGBA PNGs** — run `npm run tauri:icon -- icon.png` before `tauri:build`
-- **Docker inter-service hostnames** — use service names (`postgres`, `redis`, `mailhog`), internal ports (5432, 6379, 1025)
+- **Docker inter-service hostnames** — use service names (`postgres`, `redis`, `mailpit`), internal ports (5432, 6379, 1025)
 
 ## Database
 

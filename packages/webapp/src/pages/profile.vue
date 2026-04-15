@@ -61,7 +61,9 @@ interface IFavoriteGroup {
 const favoriteGroups = computed<IFavoriteGroup[]>(() =>
   favorites.courseKeys.map(courseKey => {
     const module = COURSE_REGISTRY[courseKey]
-    const [lang, course] = courseKey.split('-')
+    const dash = courseKey.indexOf('-')
+    const lang = courseKey.slice(0, dash)
+    const course = courseKey.slice(dash + 1)
     const courseInfo = courses.find(c => c.slug === lang)
     const ids = favorites.listForCourse(courseKey)
     const chars = module
@@ -72,7 +74,7 @@ const favoriteGroups = computed<IFavoriteGroup[]>(() =>
       lang,
       course,
       langName: t(`courses.${lang}.name`),
-      courseName: t(`courses.${lang}.${course}.title`),
+      courseName: t(`courses.${lang}.${course.replace(/-/g, '')}.title`),
       flag: courseInfo?.flag,
       color: courseInfo?.color,
       chars,
@@ -82,7 +84,9 @@ const favoriteGroups = computed<IFavoriteGroup[]>(() =>
 
 const langStatsList = computed(() =>
   stats.activeCourses.map(courseKey => {
-    const [lang, course] = courseKey.split('-')
+    const dash = courseKey.indexOf('-')
+    const lang = courseKey.slice(0, dash)
+    const course = courseKey.slice(dash + 1)
     const courseInfo = courses.find(c => c.slug === lang)
     const s = stats.getStats(courseKey)
     return {
@@ -90,7 +94,7 @@ const langStatsList = computed(() =>
       lang,
       course,
       langName: t(`courses.${lang}.name`),
-      courseName: t(`courses.${lang}.${course}.title`),
+      courseName: t(`courses.${lang}.${course.replace(/-/g, '')}.title`),
       flag: courseInfo?.flag,
       color: courseInfo?.color,
       ...s,

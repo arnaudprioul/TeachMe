@@ -85,14 +85,17 @@ export function useLanguageProfile(slug: string) {
   const profile = PROFILES[slug]
 
   const courses = computed<ILanguageCourse[]>(() =>
-    listCoursesForLanguage(slug).map(m => ({
-      slug: m.course,
-      titleKey: `courses.${m.lang}.${m.course}.title`,
-      descKey: `courses.${m.lang}.${m.course}.desc`,
-      icon: COURSE_ICONS[m.course] ?? '?',
-      route: `/${m.lang}/${m.course}`,
-      available: true,
-    })),
+    listCoursesForLanguage(slug).map(m => {
+      const courseKey = m.course.replace(/-/g, '')
+      return {
+        slug: m.course,
+        titleKey: `courses.${m.lang}.${courseKey}.title`,
+        descKey: `courses.${m.lang}.${courseKey}.desc`,
+        icon: COURSE_ICONS[m.course] ?? '?',
+        route: `/${m.lang}/${m.course}`,
+        available: true,
+      }
+    }),
   )
 
   return { profile, courses }
