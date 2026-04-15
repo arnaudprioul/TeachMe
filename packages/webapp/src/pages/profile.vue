@@ -114,21 +114,10 @@ const langStatsList = computed(() =>
       </div>
     </header>
 
-    <!-- ── Tabs ── -->
-    <nav class="tabs">
-      <button
-        class="tab" :class="{ 'tab--active': activeTab === 'overview' }"
-        @click="activeTab = 'overview'"
-      >{{ t('profile.tabOverview') }}</button>
-      <button
-        class="tab" :class="{ 'tab--active': activeTab === 'favorites' }"
-        @click="activeTab = 'favorites'"
-      >{{ t('profile.tabFavorites') }} <span class="tab__count">{{ favorites.totalCount }}</span></button>
-      <button
-        class="tab" :class="{ 'tab--active': activeTab === 'settings' }"
-        @click="activeTab = 'settings'"
-      >{{ t('profile.tabSettings') }}</button>
-    </nav>
+    <!-- ── Sidebar + content ── -->
+    <div class="profile__layout">
+      <AccountSidebar />
+      <div class="profile__content">
 
     <!-- ── OVERVIEW ── -->
     <div v-if="activeTab === 'overview'" class="tab-content">
@@ -258,12 +247,16 @@ const langStatsList = computed(() =>
         <button class="btn btn--danger btn--sm">{{ t('profile.deleteAccount') }}</button>
       </section>
     </div>
+      </div><!-- /.profile__content -->
+    </div><!-- /.profile__layout -->
   </div>
 </template>
 
 <style scoped>
 .profile {
   display: flex; flex-direction: column; gap: var(--space-6);
+  max-width: 1200px; margin: 0 auto;
+  padding: 0 var(--space-6);
 }
 
 /* Header */
@@ -283,29 +276,12 @@ const langStatsList = computed(() =>
 .profile__info h1 { font-size: var(--text-2xl); font-weight: 600; color: var(--color-text); }
 .profile__info p { font-size: var(--text-sm); color: var(--color-text-muted); margin-top: 2px; }
 
-/* Tabs */
-.tabs {
-  display: flex; gap: var(--space-1);
-  border-bottom: 1px solid var(--color-border);
-}
+/* Layout with sidebar */
+.profile__layout { display: flex; gap: var(--space-8); align-items: flex-start; }
+.profile__content { flex: 1; display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
 
-.tab {
-  display: inline-flex; align-items: center; gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  border: none; background: transparent;
-  font-size: var(--text-sm); font-weight: 500;
-  color: var(--color-text-muted); cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  transition: all var(--transition-fast);
-}
-.tab:hover { color: var(--color-text); }
-.tab--active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
-
-.tab__count {
-  font-size: 0.7rem; padding: 1px var(--space-2);
-  border-radius: var(--radius-full);
-  background: var(--color-bg-muted); color: var(--color-text-muted);
+@media (max-width: 900px) {
+  .profile__layout { flex-direction: column; gap: var(--space-4); }
 }
 
 .tab-content { display: flex; flex-direction: column; gap: var(--space-4); }

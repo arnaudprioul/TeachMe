@@ -49,17 +49,19 @@ function startReview(langSlug?: string) {
 
 <template>
   <div class="vocab-page page-container">
-    <div class="contained">
-      <Breadcrumb :items="[
-        { label: t('nav.dashboard'), to: '/dashboard' },
-        { label: t('vocabulary.title') },
-      ]" />
+    <Breadcrumb :items="[
+      { label: t('nav.dashboard'), to: '/dashboard' },
+      { label: t('vocabulary.title') },
+    ]" />
 
-      <div class="vocab-page__hero">
-        <span class="vocab-page__icon">⭐</span>
-        <h1>{{ t('vocabulary.title') }}</h1>
-        <p class="vocab-page__sub">{{ t('vocabulary.subtitle') }}</p>
-      </div>
+    <div class="vocab-page__layout">
+      <AccountSidebar />
+
+      <div class="vocab-page__content">
+        <div class="vocab-page__hero">
+          <h1>{{ t('vocabulary.title') }}</h1>
+          <p class="vocab-page__sub">{{ t('vocabulary.subtitle') }}</p>
+        </div>
 
       <!-- Global stats + review all CTA (only when there's content) -->
       <div v-if="totalCards > 0" class="vocab-page__global">
@@ -118,18 +120,24 @@ function startReview(langSlug?: string) {
           </div>
         </div>
       </section>
-    </div>
+      </div><!-- /.vocab-page__content -->
+    </div><!-- /.vocab-page__layout -->
   </div>
 </template>
 
 <style scoped>
-.vocab-page { padding: var(--space-6) 0 var(--space-16); }
-.contained { max-width: 960px; margin: 0 auto; padding: 0 var(--space-6); }
+.vocab-page { padding: var(--space-6) 0 var(--space-16); max-width: 1200px; margin: 0 auto; padding-left: var(--space-6); padding-right: var(--space-6); }
 
-.vocab-page__hero { text-align: center; margin: var(--space-10) 0 var(--space-8); }
-.vocab-page__icon { font-size: 3rem; display: block; margin-bottom: var(--space-2); }
-.vocab-page__hero h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 800; color: var(--color-text); letter-spacing: -0.03em; margin: 0; }
-.vocab-page__sub { font-size: var(--text-base); color: var(--color-text-muted); margin-top: var(--space-3); }
+.vocab-page__layout { display: flex; gap: var(--space-8); align-items: flex-start; margin-top: var(--space-6); }
+.vocab-page__content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-6); }
+
+@media (max-width: 900px) {
+  .vocab-page__layout { flex-direction: column; gap: var(--space-4); }
+}
+
+.vocab-page__hero { margin-bottom: var(--space-2); }
+.vocab-page__hero h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 800; color: var(--color-text); letter-spacing: -0.02em; margin: 0; }
+.vocab-page__sub { font-size: var(--text-sm); color: var(--color-text-muted); margin-top: var(--space-2); }
 
 .vocab-page__global {
   display: flex; justify-content: space-between; align-items: center; gap: var(--space-4);
