@@ -133,13 +133,13 @@ const themeStyle = computed(() => {
             <img v-if="current.word?.image" :src="current.word.image" :alt="current.word.translation" />
             <span v-else-if="current.word?.emoji" class="card__emoji">{{ current.word.emoji }}</span>
           </div>
+          <span class="card__prompt">{{ locale === 'fr' ? current.word?.translationFr : current.word?.translation }}</span>
           <span class="card__hint">{{ t('vocabulary.flipCard') }}</span>
         </div>
 
         <div class="card__face card__face--back">
           <span class="card__word">{{ current.word?.word }}</span>
           <span class="card__rom">{{ current.word?.romanization }}</span>
-          <span class="card__tl">{{ locale === 'fr' ? current.word?.translationFr : current.word?.translation }}</span>
         </div>
       </div>
 
@@ -227,11 +227,14 @@ const themeStyle = computed(() => {
 .card__visual { width: 140px; height: 140px; display: flex; align-items: center; justify-content: center; }
 .card__visual img { width: 140px; height: 140px; object-fit: contain; }
 .card__emoji { font-size: 5rem; }
-.card__hint { font-size: var(--text-sm); color: var(--color-text-muted); font-style: italic; }
+.card__prompt {
+  font-size: var(--text-2xl); font-weight: 700; color: var(--color-text);
+  text-align: center; margin-top: var(--space-2); letter-spacing: -0.01em;
+}
+.card__hint { font-size: var(--text-sm); color: var(--color-text-muted); font-style: italic; margin-top: var(--space-3); }
 
 .card__word { font-size: clamp(2rem, 6vw, 3.5rem); font-weight: 800; color: var(--color-text); font-family: var(--font-cjk-kr); text-align: center; }
 .card__rom { font-size: var(--text-lg); color: var(--color-text-muted); }
-.card__tl { font-size: var(--text-base); color: var(--color-text-secondary); font-style: italic; margin-top: var(--space-2); }
 
 /* Rating */
 .review-page__rating { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
