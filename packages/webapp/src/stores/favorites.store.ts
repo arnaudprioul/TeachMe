@@ -48,6 +48,28 @@ export const useFavoritesStore = defineStore('favorites', () => {
     persist()
   }
 
+  function addMany(courseKey: string, charIds: string[]) {
+    if (!byCourse.value[courseKey]) byCourse.value[courseKey] = new Set()
+    const set = byCourse.value[courseKey]
+    for (const id of charIds) set.add(id)
+    byCourse.value = { ...byCourse.value, [courseKey]: new Set(set) }
+    persist()
+  }
+
+  function removeMany(courseKey: string, charIds: string[]) {
+    const set = byCourse.value[courseKey]
+    if (!set) return
+    for (const id of charIds) set.delete(id)
+    byCourse.value = { ...byCourse.value, [courseKey]: new Set(set) }
+    persist()
+  }
+
+  function areAllFavorites(courseKey: string, charIds: string[]): boolean {
+    const set = byCourse.value[courseKey]
+    if (!set || charIds.length === 0) return false
+    return charIds.every(id => set.has(id))
+  }
+
   function isFavorite(courseKey: string, charId: string): boolean {
     return byCourse.value[courseKey]?.has(charId) ?? false
   }
@@ -70,5 +92,5 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   load()
 
-  return { byCourse, totalCount, courseKeys, toggle, isFavorite, listForCourse, countForCourse }
+  return { byCourse, totalCount, courseKeys, toggle, addMany, removeMany, areAllFavorites, isFavorite, listForCourse, countForCourse }
 })

@@ -216,3 +216,87 @@
   --shadow-lg:      0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
   --shadow-xl:      0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
 }
+
+/* ══════════════════════════════════════
+   SCROLL REVEAL ANIMATIONS
+   ══════════════════════════════════════ */
+
+/* Base: hidden state */
+.sr {
+  opacity: 0;
+  transition:
+    opacity var(--sr-dur, 700ms) cubic-bezier(0.16, 1, 0.3, 1) var(--sr-delay, 0ms),
+    transform var(--sr-dur, 700ms) cubic-bezier(0.16, 1, 0.3, 1) var(--sr-delay, 0ms),
+    filter var(--sr-dur, 700ms) cubic-bezier(0.16, 1, 0.3, 1) var(--sr-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+/* Animation variants — initial transforms */
+.sr--fade-up { transform: translateY(50px); }
+.sr--fade-down { transform: translateY(-50px); }
+.sr--fade-left { transform: translateX(-60px); }
+.sr--fade-right { transform: translateX(60px); }
+.sr--scale { transform: scale(0.88); }
+.sr--scale-up { transform: scale(0.88) translateY(30px); }
+.sr--clip-up { clip-path: inset(100% 0 0 0); transform: none; }
+.sr--blur-in { filter: blur(12px); transform: translateY(20px); }
+
+/* Visible state — all reset to identity */
+.sr--visible {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  clip-path: none;
+}
+
+/* Stagger children */
+.sr-child {
+  opacity: 0;
+  transform: translateY(30px);
+  transition:
+    opacity 600ms cubic-bezier(0.16, 1, 0.3, 1) var(--sr-child-delay, 0ms),
+    transform 600ms cubic-bezier(0.16, 1, 0.3, 1) var(--sr-child-delay, 0ms);
+}
+.sr--visible .sr-child {
+  opacity: 1;
+  transform: none;
+}
+
+/* ══════════════════════════════════════
+   WAVE SECTION — shared mask system
+   --wave-bg: background color/gradient
+   --wave-h: wave height (default 40px)
+   ══════════════════════════════════════ */
+.wave-section {
+  --wave-h: 40px;
+  --wave-overlap: var(--wave-h);
+  position: relative;
+  padding: calc(var(--space-8) + var(--wave-h)) 0;
+  margin-bottom: calc(var(--wave-overlap) * -1);
+}
+
+.wave-section + .blk,
+.wave-section + section,
+.wave-section + div { padding-top: var(--wave-overlap); }
+
+.wave-section::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: var(--wave-bg);
+  -webkit-mask-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 40' preserveAspectRatio='none'%3E%3Cpath d='M0,20 C480,45 960,0 1440,20 L1440,40 L0,40 Z' fill='white'/%3E%3C/svg%3E"),
+    linear-gradient(#000,#000),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 40' preserveAspectRatio='none'%3E%3Cpath d='M0,20 C480,0 960,45 1440,20 L1440,0 L0,0 Z' fill='white'/%3E%3C/svg%3E");
+  -webkit-mask-size: 100% var(--wave-h), 100% calc(100% - var(--wave-h) * 2), 100% var(--wave-h);
+  -webkit-mask-position: top, center, bottom;
+  -webkit-mask-repeat: no-repeat;
+  mask-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 40' preserveAspectRatio='none'%3E%3Cpath d='M0,20 C480,45 960,0 1440,20 L1440,40 L0,40 Z' fill='white'/%3E%3C/svg%3E"),
+    linear-gradient(#000,#000),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 40' preserveAspectRatio='none'%3E%3Cpath d='M0,20 C480,0 960,45 1440,20 L1440,0 L0,0 Z' fill='white'/%3E%3C/svg%3E");
+  mask-size: 100% var(--wave-h), 100% calc(100% - var(--wave-h) * 2), 100% var(--wave-h);
+  mask-position: top, center, bottom;
+  mask-repeat: no-repeat;
+}
+
+.wave-section > * { position: relative; z-index: 1; }

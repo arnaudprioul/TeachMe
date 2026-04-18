@@ -1,5 +1,6 @@
 export interface ICourse {
   slug: string
+  /** Path to SVG flag icon in /public/flags/ */
   flag: string
   color: string
   colorLight: string
@@ -11,7 +12,7 @@ export interface ICourse {
 export const COURSES: ICourse[] = [
   {
     slug: 'korean',
-    flag: '\u{1F1F0}\u{1F1F7}',
+    flag: '/flags/kr.svg',
     color: '#ff9600',
     colorLight: '#ffb340',
     colorSubtle: '#fff4e0',
@@ -20,7 +21,7 @@ export const COURSES: ICourse[] = [
   },
   {
     slug: 'japanese',
-    flag: '\u{1F1EF}\u{1F1F5}',
+    flag: '/flags/jp.svg',
     color: '#ff4b6e',
     colorLight: '#ff7a93',
     colorSubtle: '#ffe4ea',
@@ -29,7 +30,7 @@ export const COURSES: ICourse[] = [
   },
   {
     slug: 'chinese',
-    flag: '\u{1F1E8}\u{1F1F3}',
+    flag: '/flags/cn.svg',
     color: '#e63946',
     colorLight: '#ef6b77',
     colorSubtle: '#fde8ea',
@@ -38,7 +39,7 @@ export const COURSES: ICourse[] = [
   },
   {
     slug: 'spanish',
-    flag: '\u{1F1EA}\u{1F1F8}',
+    flag: '/flags/es.svg',
     color: '#f59e0b',
     colorLight: '#fbbf24',
     colorSubtle: '#fef3c7',
@@ -47,7 +48,7 @@ export const COURSES: ICourse[] = [
   },
   {
     slug: 'german',
-    flag: '\u{1F1E9}\u{1F1EA}',
+    flag: '/flags/de.svg',
     color: '#3b82f6',
     colorLight: '#60a5fa',
     colorSubtle: '#dbeafe',
@@ -56,7 +57,7 @@ export const COURSES: ICourse[] = [
   },
   {
     slug: 'italian',
-    flag: '\u{1F1EE}\u{1F1F9}',
+    flag: '/flags/it.svg',
     color: '#10b981',
     colorLight: '#34d399',
     colorSubtle: '#d1fae5',

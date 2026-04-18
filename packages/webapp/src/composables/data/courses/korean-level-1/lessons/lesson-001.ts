@@ -52,10 +52,10 @@ export const LESSON_001: ILesson = {
     {
       type: LESSON_CONTENT_TYPE.CHARACTER_PROFILES,
       characters: [
-        { name: 'Minsu', nameKr: '민수', country: 'South Korea', flag: '🇰🇷', jobKey: `${P}.c.jobStudent` },
-        { name: 'Jiyeong', nameKr: '지영', country: 'South Korea', flag: '🇰🇷', jobKey: `${P}.c.jobTeacher` },
-        { name: 'Emma', nameKr: '엠마', country: 'USA', flag: '🇺🇸', jobKey: `${P}.c.jobEngineer` },
-        { name: 'Yuki', nameKr: '유키', country: 'Japan', flag: '🇯🇵', jobKey: `${P}.c.jobStudent` },
+        { name: 'Minsu', nameKr: '민수', country: 'South Korea', flag: '/flags/kr.svg', jobKey: `${P}.c.jobStudent` },
+        { name: 'Jiyeong', nameKr: '지영', country: 'South Korea', flag: '/flags/kr.svg', jobKey: `${P}.c.jobTeacher` },
+        { name: 'Emma', nameKr: '엠마', country: 'USA', flag: '/flags/us.svg', jobKey: `${P}.c.jobEngineer` },
+        { name: 'Yuki', nameKr: '유키', country: 'Japan', flag: '/flags/jp.svg', jobKey: `${P}.c.jobStudent` },
       ],
     },
 

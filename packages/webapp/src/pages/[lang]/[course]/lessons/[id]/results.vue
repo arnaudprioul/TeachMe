@@ -18,7 +18,8 @@ const lessonId = computed(() => Number(route.params.id))
 const lesson = computed(() => module.value?.lessons?.find(l => l.id === lessonId.value))
 
 onMounted(() => {
-  if (!quiz.session) navigateTo(paths.value.lessons)
+  // No session at all — redirect back to the lesson page instead of the list
+  if (!quiz.session) navigateTo(paths.value.lesson(lessonId.value))
 })
 
 const emoji = computed(() => {

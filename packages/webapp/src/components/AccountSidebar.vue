@@ -13,7 +13,7 @@ const items = computed(() => [
   {
     id: 'overview',
     label: t('profile.tabOverview'),
-    to: '/profile',
+    to: { path: '/profile', query: {} },
     active: route.path === '/profile' && !route.query.tab,
     icon: 'user',
   },
@@ -28,7 +28,7 @@ const items = computed(() => [
   {
     id: 'favorites',
     label: t('profile.tabFavorites'),
-    to: '/profile?tab=favorites',
+    to: { path: '/profile', query: { tab: 'favorites' } },
     active: route.path === '/profile' && route.query.tab === 'favorites',
     icon: 'heart',
     badge: favorites.totalCount || undefined,
@@ -36,7 +36,7 @@ const items = computed(() => [
   {
     id: 'settings',
     label: t('profile.settings'),
-    to: '/profile?tab=settings',
+    to: { path: '/profile', query: { tab: 'settings' } },
     active: route.path === '/profile' && route.query.tab === 'settings',
     icon: 'settings',
   },

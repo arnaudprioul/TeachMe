@@ -10,7 +10,7 @@ definePageMeta({ layout: 'default', middleware: 'auth' })
 
 const { t } = useI18n()
 const route = useRoute()
-const { language, courseKey, paths } = useCourseContext()
+const { language, module, courseKey, paths } = useCourseContext()
 const quiz = useLessonQuizStore()
 const progressStore = useLessonProgressStore()
 
@@ -24,7 +24,20 @@ const textInput = ref('')
 const inputRef = ref<HTMLInputElement | null>(null)
 
 onMounted(() => {
-  if (!quiz.session) navigateTo(paths.value.lessons)
+  // If session was finished or lost but lesson is still bound, restart
+  if (!quiz.session && quiz.lesson) {
+    quiz.start()
+  }
+  // If no lesson bound at all, try to bind from route context
+  if (!quiz.session && !quiz.lesson) {
+    const lesson = module.value?.lessons?.find(l => l.id === lessonId.value)
+    if (lesson) {
+      quiz.bind(lesson)
+      quiz.start()
+    } else {
+      navigateTo(paths.value.lessons)
+    }
+  }
 })
 
 const q = computed(() => quiz.currentQuestion)
