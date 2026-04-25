@@ -168,6 +168,7 @@ export enum LESSON_EXERCISE_TYPE {
   FILL_BLANK = 'FILL_BLANK',
   REORDER = 'REORDER',
   TRANSLATE = 'TRANSLATE',
+  SPEAK = 'SPEAK',
 }
 
 export type TExerciseDifficulty = 'easy' | 'medium' | 'hard'
@@ -192,11 +193,18 @@ export interface ILessonExercise {
   sourceKey?: string
   /** TRANSLATE — expected answer in target language. */
   targetAnswer?: string
+  /** SPEAK — the text the user must pronounce. */
+  speakText?: string
+  /** SPEAK — romanization hint shown to the user. */
+  speakRomanization?: string
 }
 
 // ── Lesson definition ──
 export interface ILesson {
   id: number
+  /** Course level (1, 2, 3…). MUST match the parent folder's level number.
+   *  Validated at runtime via `validateLessons()` in each level's `lessons/index.ts`. */
+  level: number
   themeKey: string
   words: ILessonWord[]
   /** Course/grammar content blocks displayed in order. */

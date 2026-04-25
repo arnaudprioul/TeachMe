@@ -15,6 +15,7 @@ const P = 'courses.japanese.level1.l1'
 
 export const LESSON_001: ILesson = {
   id: 1,
+  level: 1,
   themeKey: 'greetings',
 
   // ═══════════════════════════════════════════════════════
@@ -358,7 +359,7 @@ export const LESSON_001: ILesson = {
       acceptedAnswers: ['はじめまして わたしはマイクです', 'はじめまして、わたしはマイクです。', 'はじめまして。わたしはマイクです。'],
     },
     { id: 'h2', type: LESSON_EXERCISE_TYPE.REORDER, difficulty: 'hard', correctOrder: ['どうぞ', 'よろしく', 'おねがいします'] },
-    { id: 'h3', type: LESSON_EXERCISE_TYPE.FILL_BLANK, difficulty: 'hard', sentenceTemplate: 'わたしはアメリカ___です', answer: '人' },
+    { id: 'h3', type: LESSON_EXERCISE_TYPE.FILL_BLANK, difficulty: 'hard', sentenceTemplate: 'わたしはアメリカ___です', answer: '人', acceptedAnswers: ['人', 'じん', 'jin'] },
     {
       id: 'h4', type: LESSON_EXERCISE_TYPE.TRANSLATE, difficulty: 'hard',
       sourceKey: `${P}.ex.h4src`,

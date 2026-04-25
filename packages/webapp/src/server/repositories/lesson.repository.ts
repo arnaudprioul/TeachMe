@@ -170,8 +170,13 @@ async function hydrateLesson(row: Record<string, unknown>): Promise<ILesson> {
     db('lesson_exercises').where({ lesson_id: lessonRowId }).orderBy('sort_order', 'asc'),
   ])
 
+  const courseId = row.course_id as string
+  const levelMatch = courseId.match(/level-(\d+)/)
+  const level = levelMatch ? parseInt(levelMatch[1], 10) : 1
+
   const lesson: ILesson = {
     id: row.lesson_number as number,
+    level,
     themeKey: row.theme_key as string,
     words: words.map(toWord),
     content: blocks.length > 0 ? blocks.map(toBlock) : undefined,

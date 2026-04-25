@@ -16,6 +16,7 @@ const P = 'courses.korean.level1.l1'
 
 export const LESSON_001: ILesson = {
   id: 1,
+  level: 1,
   themeKey: 'greetings',
 
   // ═══════════════════════════════════════════════════════

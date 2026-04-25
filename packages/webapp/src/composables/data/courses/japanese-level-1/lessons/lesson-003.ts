@@ -5,6 +5,7 @@ const P = 'courses.japanese.level1.l3'
 
 export const LESSON_003: ILesson = {
   id: 3,
+  level: 1,
   themeKey: 'places',
 
   words: [
