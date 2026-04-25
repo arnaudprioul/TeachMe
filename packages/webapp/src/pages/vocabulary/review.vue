@@ -6,6 +6,7 @@ import { useAuthStore } from '~/stores/auth.store'
 import { useCourses } from '~/composables/useCourses'
 import { resolveReviewCards, type IEnrichedReviewCard } from '~/composables/useReviewCards'
 import { useCourseAudio } from '~/composables/useCourseAudio'
+import { useSpeechRecognition } from '~/composables/useSpeechRecognition'
 import { getCourseModule } from '~/composables/data/courses'
 
 definePageMeta({ layout: 'default', middleware: 'auth' })
@@ -87,6 +88,46 @@ function advance() {
   }
 }
 
+// ── Speech recognition for pronunciation check ──
+const speech = useSpeechRecognition()
+const micState = ref<'idle' | 'listening' | 'correct' | 'wrong'>('idle')
+const spokenText = ref('')
+
+function startMic() {
+  if (micState.value === 'listening') { speech.stop(); micState.value = 'idle'; return }
+  if (flipped.value) return // only before flipping
+  micState.value = 'listening'
+  spokenText.value = ''
+  speech.transcript.value = ''
+  speech.error.value = null
+  const ttsLang = currentTtsLang.value ?? 'ko-KR'
+  speech.start(ttsLang)
+}
+
+watch(() => speech.transcript.value, (val) => {
+  if (!val || micState.value !== 'listening') return
+  spokenText.value = val
+  const norm = (s: string) => s.trim().toLowerCase().replace(/[.!?,。、\s]/g, '')
+  const spoken = norm(val)
+  const target = norm(current.value?.word?.word ?? '')
+  const romaji = norm(current.value?.word?.romanization ?? '')
+  const ok = spoken === target || spoken === romaji || spoken.includes(target) || target.includes(spoken)
+  micState.value = ok ? 'correct' : 'wrong'
+  // Flip the card to show the answer, then auto-rate
+  flip()
+  setTimeout(() => rate(ok ? 4 : 2), 1200)
+})
+
+watch(() => speech.isListening.value, (v) => {
+  if (!v && micState.value === 'listening') micState.value = 'idle'
+})
+
+// Reset mic state on card change
+watch(currentIdx, () => {
+  micState.value = 'idle'
+  spokenText.value = ''
+})
+
 /** Color theming: match the current card's language color when reviewing cross-lang. */
 const themeStyle = computed(() => {
   const c = current.value
@@ -122,7 +163,7 @@ const themeStyle = computed(() => {
         </div>
         <!-- Small lang flag indicator (useful for cross-lang sessions) -->
         <span v-if="current" class="review-page__lang-chip">
-          {{ getBySlug(current.lang)?.flag }}
+          <img v-if="getBySlug(current.lang)?.flag" :src="getBySlug(current.lang)!.flag" alt="" style="width:20px;height:15px;object-fit:cover;border-radius:2px" />
         </span>
       </header>
 
@@ -131,10 +172,29 @@ const themeStyle = computed(() => {
         <div class="card__face card__face--front">
           <div class="card__visual">
             <img v-if="current.word?.image" :src="current.word.image" :alt="current.word.translation" />
-            <span v-else-if="current.word?.emoji" class="card__emoji">{{ current.word.emoji }}</span>
           </div>
           <span class="card__prompt">{{ locale === 'fr' ? current.word?.translationFr : current.word?.translation }}</span>
-          <span class="card__hint">{{ t('vocabulary.flipCard') }}</span>
+
+          <!-- Mic button for pronunciation -->
+          <div v-if="speech.isSupported.value && !flipped" class="card__mic-area">
+            <button
+              class="card__mic"
+              :class="{
+                'card__mic--listening': micState === 'listening',
+                'card__mic--correct': micState === 'correct',
+                'card__mic--wrong': micState === 'wrong',
+              }"
+              @click.stop="startMic"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </button>
+            <span v-if="micState === 'listening'" class="card__mic-label">{{ t('lessonPage.listening') }}</span>
+            <span v-else-if="micState === 'correct'" class="card__mic-label card__mic-label--correct">{{ spokenText }}</span>
+            <span v-else-if="micState === 'wrong'" class="card__mic-label card__mic-label--wrong">{{ spokenText }}</span>
+            <span v-else class="card__mic-label">{{ t('lessonPage.tapToSpeak') }}</span>
+          </div>
+
+          <span v-else class="card__hint">{{ t('vocabulary.flipCard') }}</span>
         </div>
 
         <div class="card__face card__face--back">
@@ -232,6 +292,34 @@ const themeStyle = computed(() => {
   text-align: center; margin-top: var(--space-2); letter-spacing: -0.01em;
 }
 .card__hint { font-size: var(--text-sm); color: var(--color-text-muted); font-style: italic; margin-top: var(--space-3); }
+
+/* Mic area on flashcard front */
+.card__mic-area {
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+.card__mic {
+  width: 56px; height: 56px;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--color-border); background: var(--color-bg-surface);
+  border-radius: var(--radius-full); color: var(--color-text-muted);
+  cursor: pointer; transition: all 200ms ease;
+}
+.card__mic:hover { border-color: var(--color-text-subtle); color: var(--color-text); }
+.card__mic--listening {
+  border-color: #ef4444; background: #fef2f2; color: #ef4444;
+  animation: review-mic-pulse 1s ease-in-out infinite;
+}
+.card__mic--correct { border-color: #22c55e; background: #f0fdf4; color: #22c55e; }
+.card__mic--wrong { border-color: #ef4444; background: #fef2f2; color: #ef4444; }
+@keyframes review-mic-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+.card__mic-label {
+  font-size: var(--text-xs); color: var(--color-text-muted);
+  min-height: 1.2em;
+}
+.card__mic-label--correct { color: #22c55e; font-weight: 700; }
+.card__mic-label--wrong { color: #ef4444; font-weight: 700; }
 
 .card__word { font-size: clamp(2rem, 6vw, 3.5rem); font-weight: 800; color: var(--color-text); font-family: var(--font-cjk-kr); text-align: center; }
 .card__rom { font-size: var(--text-lg); color: var(--color-text-muted); }

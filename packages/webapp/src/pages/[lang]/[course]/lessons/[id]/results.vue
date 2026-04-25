@@ -95,7 +95,7 @@ function retry() {
       <NuxtLink :to="paths.lesson(lessonId)" class="btn btn--ghost btn--full">
         {{ t('lessons.reviewVocab') }}
       </NuxtLink>
-      <NuxtLink :to="paths.lessons" class="btn btn--ghost btn--full">
+      <NuxtLink :to="paths.root" class="btn btn--ghost btn--full">
         {{ t('lessons.backToLessons') }}
       </NuxtLink>
     </div>

@@ -35,7 +35,7 @@ onMounted(() => {
       quiz.bind(lesson)
       quiz.start()
     } else {
-      navigateTo(paths.value.lessons)
+      navigateTo(paths.value.lesson(lessonId.value))
     }
   }
 })
@@ -83,7 +83,7 @@ function handleNext() {
   <div v-if="quiz.session && q" class="qz" :style="{ '--color-course': course?.color }">
     <!-- Header -->
     <header class="qz__header">
-      <NuxtLink :to="paths.lessons" class="qz__close" aria-label="Close">
+      <NuxtLink :to="paths.lesson(lessonId)" class="qz__close" aria-label="Close">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>

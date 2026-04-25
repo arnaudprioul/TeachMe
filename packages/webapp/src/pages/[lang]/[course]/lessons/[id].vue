@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCourseContext } from '~/composables/useCourseContext'
 import { useLessonQuizStore } from '~/stores/lesson-quiz.store'
+import { useLessonExerciseStore } from '~/stores/lesson-exercise.store'
+import { useLessonProgressStore } from '~/stores/lesson-progress.store'
 import { useReviewsStore } from '~/stores/reviews.store'
+import { useToast } from '~/composables/useToast'
+import type { TExerciseDifficulty } from '~/composables/data/courses/lesson-types'
 
 definePageMeta({ layout: 'default', middleware: 'auth' })
 
@@ -11,7 +15,10 @@ const { t, locale } = useI18n()
 const route = useRoute()
 const { lang, module, language, paths, tKey, courseKey } = useCourseContext()
 const quiz = useLessonQuizStore()
+const exerciseStore = useLessonExerciseStore()
+const progressStore = useLessonProgressStore()
 const reviews = useReviewsStore()
+const toast = useToast()
 
 const allInReview = computed(() => {
   if (!lesson.value?.words.length) return false
@@ -27,19 +34,23 @@ async function toggleAllReview() {
   addingToReview.value = true
   try {
     if (allInReview.value) {
-      // Remove all from deck
-      for (const w of lesson.value.words) {
-        const card = reviews.findCard(lang.value, w.id, courseKey.value, lessonId.value)
-        if (card) await reviews.remove(card.id)
-      }
+      // 1 single batch delete call
+      const ids = lesson.value.words
+        .map(w => reviews.findCard(lang.value, w.id, courseKey.value, lessonId.value)?.id)
+        .filter((id): id is string => !!id)
+      if (ids.length) await reviews.removeBatch(ids)
+      toast.success(t('lessonPage.removedFromReview'))
     } else {
-      // Add missing to deck
-      for (const w of lesson.value.words) {
-        if (!reviews.isInDeck(lang.value, w.id, courseKey.value, lessonId.value)) {
-          await reviews.add({ lang: lang.value, wordId: w.id, courseId: courseKey.value, lessonId: lessonId.value })
-        }
-      }
+      // 1 single batch add call
+      const items = lesson.value.words
+        .filter(w => !reviews.isInDeck(lang.value, w.id, courseKey.value, lessonId.value))
+        .map(w => ({ lang: lang.value, wordId: w.id, courseId: courseKey.value, lessonId: lessonId.value }))
+      if (items.length) await reviews.addBatch(items)
+      toast.success(t('lessonPage.addedToReview', { n: items.length }))
     }
+  } catch (err) {
+    console.error('[toggleAllReview] failed', err)
+    toast.error(t('common.error'))
   } finally {
     addingToReview.value = false
   }
@@ -49,7 +60,28 @@ const course = computed(() => language.value!)
 const lessonId = computed(() => Number(route.params.id))
 const lesson = computed(() => module.value?.lessons?.find(l => l.id === lessonId.value))
 
-onMounted(() => { if (!lesson.value) navigateTo(paths.value.lessons) })
+onMounted(() => {
+  if (!lesson.value) { navigateTo(paths.value.root); return }
+  if (isChildRoute.value) return
+
+  // Resume: scroll to where the user left off
+  const saved = progressStore.getProgress(courseKey.value, lessonId.value)
+  if (saved.bestScore > 0) {
+    // Wait for DOM to be fully rendered, then override the router's scroll-to-top
+    const tryScroll = (retries: number) => {
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight
+      if (docHeight > 800 || retries > 30) {
+        const pct = Math.min(saved.bestScore, 100)
+        const targetScroll = Math.round((pct / 100) * docHeight)
+        window.scrollTo(0, targetScroll)
+      } else {
+        requestAnimationFrame(() => tryScroll(retries + 1))
+      }
+    }
+    // Delay enough for the router scroll-to-top to complete first
+    setTimeout(() => tryScroll(0), 500)
+  }
+})
 
 const hasContent = computed(() => !!lesson.value?.content?.length)
 const hasExercises = computed(() => !!lesson.value?.exercises?.length)
@@ -123,9 +155,27 @@ const floatingShapes = computed(() => {
 
 // ── Parallax on hero ──
 const scrollY = ref(0)
-function onScroll() { scrollY.value = window.scrollY }
+let scrollSaveTimer: ReturnType<typeof setTimeout> | null = null
+
+function onScroll() {
+  scrollY.value = window.scrollY
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight
+  scrollProgress.value = docHeight > 0 ? Math.min(100, Math.round((window.scrollY / docHeight) * 100)) : 0
+
+  // Debounce: persist scroll progress every 500ms (only if higher than current best)
+  if (scrollSaveTimer) clearTimeout(scrollSaveTimer)
+  scrollSaveTimer = setTimeout(() => {
+    const current = progressStore.getProgress(courseKey.value, lessonId.value)
+    if (scrollProgress.value > current.bestScore && !progressStore.isCompleted(courseKey.value, lessonId.value)) {
+      progressStore.recordAttempt(courseKey.value, lessonId.value, scrollProgress.value)
+    }
+  }, 500)
+}
 onMounted(() => window.addEventListener('scroll', onScroll, { passive: true }))
-onUnmounted(() => window.removeEventListener('scroll', onScroll))
+onUnmounted(() => {
+  window.removeEventListener('scroll', onScroll)
+  if (scrollSaveTimer) clearTimeout(scrollSaveTimer)
+})
 
 // Floating word characters for hero
 const heroChars = computed(() => {
@@ -147,10 +197,135 @@ const heroChars = computed(() => {
     char: w[(i * 3 + 1) % w.length]?.word.charAt(0) ?? '',
   }))
 })
+
+// ── Snackbar: scroll progress (computed in listener for reactivity) ──
+const scrollProgress = ref(0)
+const showSnackbar = computed(() => scrollY.value > 200)
+
+// ── Exercise completion per difficulty ──
+const EXERCISE_PASS_THRESHOLD = 50
+const easyDone = computed(() => progressStore.getExerciseProgress(courseKey.value, lessonId.value, 'easy').bestScore >= EXERCISE_PASS_THRESHOLD)
+const mediumDone = computed(() => progressStore.getExerciseProgress(courseKey.value, lessonId.value, 'medium').bestScore >= EXERCISE_PASS_THRESHOLD)
+const hardDone = computed(() => progressStore.getExerciseProgress(courseKey.value, lessonId.value, 'hard').bestScore >= EXERCISE_PASS_THRESHOLD)
+const allExercisesDone = computed(() => easyDone.value && mediumDone.value && hardDone.value)
+
+// ── Auto-complete lesson when scroll 90%+ AND all exercises done ──
+const lessonJustCompleted = ref(false)
+watch([scrollProgress, allExercisesDone], ([scroll, exercises]) => {
+  if (scroll >= 90 && exercises && !progressStore.isCompleted(courseKey.value, lessonId.value)) {
+    progressStore.recordAttempt(courseKey.value, lessonId.value, 100, true)
+    lessonJustCompleted.value = true
+    setTimeout(() => { lessonJustCompleted.value = false }, 3000)
+  }
+})
+
+// ── Bottom navigation ──
+const prevLesson = computed(() => lesson.value && lesson.value.id > 1 ? lesson.value.id - 1 : null)
+const nextLesson = computed(() => {
+  const lessons = module.value?.lessons ?? []
+  const next = lessons.find(l => l.id === lessonId.value + 1)
+  return next ? next.id : null
+})
+const nextUnlocked = computed(() => nextLesson.value ? progressStore.isUnlocked(courseKey.value, nextLesson.value) : false)
+
+// ── FAB section navigation ──
+const fabOpen = ref(false)
+const showFab = computed(() => scrollY.value > 300)
+
+const fabSections = computed(() => [
+  { id: 'section-vocab', labelKey: 'lessonPage.fabVocabulary', icon: 'book' },
+  { id: 'section-content', labelKey: 'lessonPage.fabLesson', icon: 'document' },
+  ...(hasExercises.value ? [{ id: 'section-exercises', labelKey: 'lessonPage.fabExercises', icon: 'lightning' }] : []),
+  { id: 'section-nav', labelKey: 'lessonPage.fabNavigation', icon: 'arrow' },
+])
+
+// ── FAB: build section list from lesson content blocks ──
+const fabContentSections = computed(() => {
+  if (!lesson.value?.content) return []
+  const sections: Array<{ id: string; label: string }> = []
+  let sectionIdx = 0
+  for (const block of lesson.value.content) {
+    if (block.type === 'SECTION_HEADER' && block.sectionHeader) {
+      const label = t(block.sectionHeader.titleKey)
+      sections.push({ id: `section-part-${sectionIdx}`, label })
+      sectionIdx++
+    }
+  }
+  return sections
+})
+
+// Count how many SECTION_HEADER blocks are before index i
+function contentSectionIndex(blockIndex: number): number {
+  let count = 0
+  const blocks = lesson.value?.content ?? []
+  for (let j = 0; j < blockIndex; j++) {
+    if (blocks[j].type === 'SECTION_HEADER') count++
+  }
+  return count
+}
+
+function scrollToSection(id: string) {
+  const el = document.getElementById(id)
+  if (!el) return
+  const headerOffset = 80
+  const top = el.getBoundingClientRect().top + window.scrollY - headerOffset
+  window.scrollTo({ top, behavior: 'smooth' })
+  fabOpen.value = false
+}
+
+
+function onFabClickOutside(e: MouseEvent) {
+  const target = e.target as HTMLElement
+  if (!target.closest('.fab')) fabOpen.value = false
+}
+
+// ── Results sidebar ──
+const showResults = computed(() => route.query.showResults as TExerciseDifficulty | undefined)
+const resultsSidebarOpen = computed(() => !!showResults.value && !!exerciseStore.session && exerciseStore.isFinished)
+
+function resolveKey(key: string): string {
+  return key.startsWith('__raw:') ? key.slice(6) : t(key)
+}
+
+function exerciseLabel(exerciseId: string): string {
+  const ex = exerciseStore.session?.exercises.find(e => e.id === exerciseId)
+  if (!ex) return exerciseId
+  if (ex.questionKey) return resolveKey(ex.questionKey)
+  if (ex.sentenceTemplate) return ex.sentenceTemplate.replace('___', '…')
+  if (ex.sourceKey) return resolveKey(ex.sourceKey)
+  if (ex.correctOrder) return ex.correctOrder.join(' ')
+  return exerciseId
+}
+
+function closeResults() {
+  navigateTo({ path: route.path, query: {} }, { replace: true })
+}
+
+function retryExercise() {
+  const diff = showResults.value || 'easy'
+  closeResults()
+  navigateTo({ path: paths.value.lessonExercises(lessonId.value), query: { difficulty: diff } })
+}
+
+const resultsScore = computed(() => exerciseStore.score)
+const resultsPassed = computed(() => resultsScore.value.percentage >= EXERCISE_PASS_THRESHOLD)
+
+// ── Detect if we're on a child route (exercises, quiz, results) ──
+const isChildRoute = computed(() => {
+  const path = route.path
+  const lessonBase = paths.value.lesson(lessonId.value)
+  return path !== lessonBase && path.startsWith(lessonBase + '/')
+})
+
+onMounted(() => document.addEventListener('click', onFabClickOutside))
+onUnmounted(() => document.removeEventListener('click', onFabClickOutside))
 </script>
 
 <template>
-  <div v-if="lesson" class="lp" :style="{ '--cc': course?.color, '--cc-s': course?.colorSubtle, '--cc-l': course?.colorLight }">
+  <!-- Child routes (exercises, quiz, results) render their own page -->
+  <NuxtPage v-if="isChildRoute" />
+
+  <div v-else-if="lesson" class="lp" :class="{ 'lp--sidebar-open': resultsSidebarOpen }" :style="{ '--cc': course?.color, '--cc-s': course?.colorSubtle, '--cc-l': course?.colorLight }">
 
     <!-- Global floating abstract shapes — dynamically generated with seeded random -->
     <div class="lp-shapes" aria-hidden="true">
@@ -177,7 +352,7 @@ const heroChars = computed(() => {
         { label: t('nav.dashboard'), to: '/dashboard' },
         { label: t(`courses.${lang}.name`), to: paths.languageRoot },
         { label: t(tKey('title')), to: paths.root },
-        { label: t(tKey('lessons.title')), to: paths.lessons },
+        { label: t(tKey('lessons.title')), to: paths.root },
         { label: t(tKey('lessons.lesson'), { n: lesson.id }) },
       ]" />
     </div>
@@ -203,7 +378,7 @@ const heroChars = computed(() => {
 
       <!-- Content -->
       <div class="hero__inner contained">
-        <NuxtLink :to="paths.lessons" class="hero__back" aria-label="Back">
+        <NuxtLink :to="paths.root" class="hero__back" :aria-label="t('lessonPage.backToLevel')">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </NuxtLink>
         <span class="hero__eyebrow">{{ t(tKey('lessons.lesson'), { n: lesson.id }) }}</span>
@@ -226,7 +401,7 @@ const heroChars = computed(() => {
     <!-- ════════════════════════════════════════════════════
          VOCABULARY — Collapsible compact bar
          ════════════════════════════════════════════════════ -->
-    <section class="vocab-section" v-scroll-reveal>
+    <section id="section-vocab" class="vocab-section" v-scroll-reveal>
       <div class="contained">
         <div class="vocab-bar" @click="vocabOpen = !vocabOpen">
           <div class="vocab-bar__left">
@@ -277,17 +452,18 @@ const heroChars = computed(() => {
     <!-- ════════════════════════════════════════════════════
          COURSE CONTENT — Each block is immersive
          ════════════════════════════════════════════════════ -->
+    <div id="section-content"></div>
     <template v-if="hasContent">
-      <LessonContentBlock
-        v-for="(block, i) in lesson.content" :key="i"
-        :block="block"
-      />
+      <template v-for="(block, i) in lesson.content" :key="i">
+        <div v-if="block.type === 'SECTION_HEADER'" :id="`section-part-${contentSectionIndex(i)}`"></div>
+        <LessonContentBlock :block="block" />
+      </template>
     </template>
 
     <!-- ════════════════════════════════════════════════════
          EXERCISES — Cinematic cards
          ════════════════════════════════════════════════════ -->
-    <section v-if="hasExercises" class="ex-section" v-scroll-reveal>
+    <section id="section-exercises" v-if="hasExercises" class="ex-section" v-scroll-reveal>
       <div class="wave-section ex-section__fill">
         <div class="contained">
           <div class="ex-header">
@@ -298,7 +474,7 @@ const heroChars = computed(() => {
 
           <div class="ex-grid" v-scroll-reveal.stagger>
             <NuxtLink
-              :to="`${paths.lesson(lessonId)}/exercises?difficulty=easy`"
+              :to="{ path: paths.lessonExercises(lessonId), query: { difficulty: 'easy' } }"
               class="ex-card ex-card--easy"
             >
               <div class="ex-card__icon">
@@ -310,7 +486,7 @@ const heroChars = computed(() => {
             </NuxtLink>
 
             <NuxtLink
-              :to="`${paths.lesson(lessonId)}/exercises?difficulty=medium`"
+              :to="{ path: paths.lessonExercises(lessonId), query: { difficulty: 'medium' } }"
               class="ex-card ex-card--medium"
             >
               <div class="ex-card__icon">
@@ -322,7 +498,7 @@ const heroChars = computed(() => {
             </NuxtLink>
 
             <NuxtLink
-              :to="`${paths.lesson(lessonId)}/exercises?difficulty=hard`"
+              :to="{ path: paths.lessonExercises(lessonId), query: { difficulty: 'hard' } }"
               class="ex-card ex-card--hard"
             >
               <div class="ex-card__icon">
@@ -338,14 +514,196 @@ const heroChars = computed(() => {
     </section>
 
     <!-- ════════════════════════════════════════════════════
-         BACK
+         BOTTOM NAVIGATION
          ════════════════════════════════════════════════════ -->
-    <div class="contained back-row">
-      <NuxtLink :to="paths.lessons" class="btn-ghost">
+    <nav id="section-nav" class="contained bottom-nav">
+      <NuxtLink
+        v-if="prevLesson"
+        :to="paths.lesson(prevLesson)"
+        class="btn-ghost bottom-nav__btn"
+      >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-        {{ t('common.back') }}
+        {{ t('lessonPage.previousLesson', { n: prevLesson }) }}
       </NuxtLink>
-    </div>
+      <span v-else class="bottom-nav__spacer"></span>
+
+      <NuxtLink :to="paths.root" class="btn-ghost bottom-nav__btn bottom-nav__btn--center">
+        {{ t('lessonPage.backToLevel') }}
+      </NuxtLink>
+
+      <NuxtLink
+        v-if="nextLesson && nextUnlocked"
+        :to="paths.lesson(nextLesson)"
+        class="btn-ghost bottom-nav__btn"
+      >
+        {{ t('lessonPage.nextLessonNav', { n: nextLesson }) }}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </NuxtLink>
+      <span v-else-if="nextLesson" class="btn-ghost bottom-nav__btn bottom-nav__btn--disabled">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        {{ t('lessonPage.nextLessonNav', { n: nextLesson }) }}
+      </span>
+      <span v-else class="bottom-nav__spacer"></span>
+    </nav>
+
+    <!-- ════════════════════════════════════════════════════
+         FAB — Section navigation
+         ════════════════════════════════════════════════════ -->
+    <Transition name="fab-slide">
+      <div v-if="showFab" class="fab" @click.stop>
+        <!-- Menu items -->
+        <Transition name="fab-menu">
+          <div v-if="fabOpen" class="fab__menu">
+            <div class="fab__scroll">
+              <!-- Vocabulary -->
+              <button class="fab__item fab__item--icon" @click="scrollToSection('section-vocab')">
+                <span class="fab__item-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+                </span>
+                <span>{{ t('lessonPage.fabVocabulary') }}</span>
+              </button>
+
+              <!-- Parts of the lesson -->
+              <button
+                v-for="(sec, idx) in fabContentSections"
+                :key="sec.id"
+                class="fab__item fab__item--part"
+                @click="scrollToSection(sec.id)"
+              >
+                <span class="fab__item-num">{{ idx + 1 }}</span>
+                <span>{{ sec.label }}</span>
+              </button>
+
+              <!-- Exercises -->
+              <button v-if="hasExercises" class="fab__item fab__item--icon" @click="scrollToSection('section-exercises')">
+                <span class="fab__item-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                </span>
+                <span>{{ t('lessonPage.fabExercises') }}</span>
+              </button>
+            </div>
+          </div>
+        </Transition>
+
+        <!-- FAB button -->
+        <button
+          class="fab__btn"
+          :class="{ 'fab__btn--open': fabOpen }"
+          :aria-label="t('lessonPage.fabNavigation')"
+          @click="fabOpen = !fabOpen"
+        >
+          <!-- Menu icon (3 lines) -->
+          <svg v-if="!fabOpen" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+          <!-- Close icon -->
+          <svg v-else width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </Transition>
+
+    <!-- ════════════════════════════════════════════════════
+         FIXED SNACKBAR — scroll progress + exercise chips
+         ════════════════════════════════════════════════════ -->
+    <Transition name="snackbar-slide">
+      <div v-if="showSnackbar" class="snackbar" aria-label="Lesson progress">
+        <!-- Progress bar -->
+        <div class="snackbar__progress-track">
+          <div class="snackbar__progress-fill" :style="{ width: `${scrollProgress}%` }"></div>
+        </div>
+
+        <div class="snackbar__content contained">
+          <!-- Left: back to level + scroll percentage -->
+          <NuxtLink :to="paths.root" class="snackbar__back" :title="t('lessonPage.backToLevel')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </NuxtLink>
+          <span class="snackbar__pct">{{ scrollProgress }}%</span>
+
+          <!-- Center: completion message -->
+          <Transition name="snackbar-complete">
+            <span v-if="lessonJustCompleted" class="snackbar__complete">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              {{ t('lessonPage.lessonComplete') }}
+            </span>
+          </Transition>
+
+          <!-- Right: exercise indicators -->
+          <div class="snackbar__exercises">
+            <NuxtLink
+              v-for="diff in ([
+                { key: 'easy', done: easyDone, color: '#22c55e' },
+                { key: 'medium', done: mediumDone, color: '#f59e0b' },
+                { key: 'hard', done: hardDone, color: '#ef4444' },
+              ] as const)"
+              :key="diff.key"
+              :to="{ path: paths.lessonExercises(lessonId), query: { difficulty: diff.key } }"
+              class="snackbar__ex"
+              :class="{ 'snackbar__ex--done': diff.done }"
+              :style="{ '--ex-color': diff.color }"
+              :title="t(`lessonPage.${diff.key}`)"
+            >
+              <svg v-if="diff.done" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span v-else class="snackbar__ex-dot"></span>
+            </NuxtLink>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- ════════════════════════════════════════════════════
+         RESULTS SIDEBAR
+         ════════════════════════════════════════════════════ -->
+    <Transition name="sidebar-slide">
+      <div v-if="resultsSidebarOpen" class="rs-overlay" @click.self="closeResults">
+        <aside class="rs">
+          <div class="rs__header">
+            <h3 class="rs__title">{{ t('lessonPage.resultsSidebarTitle') }}</h3>
+            <button class="rs__close" aria-label="Close" @click="closeResults">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="rs__score-block" :class="resultsPassed ? 'rs__score-block--pass' : 'rs__score-block--fail'">
+            <div class="rs__score-top">
+              <span class="rs__diff-badge">{{ t(`lessonPage.${showResults}`) }}</span>
+              <span class="rs__score-pct">{{ resultsScore.percentage }}%</span>
+            </div>
+            <div class="rs__score-bar">
+              <div class="rs__score-fill" :style="{ width: `${resultsScore.percentage}%` }"></div>
+            </div>
+            <span class="rs__pass-label">{{ resultsPassed ? t('lessonPage.passed') : t('lessonPage.failed') }}</span>
+          </div>
+
+          <div class="rs__results-list">
+            <div
+              v-for="(result, i) in exerciseStore.session!.results"
+              :key="i"
+              class="rs__item"
+              :class="result.correct ? 'rs__item--correct' : 'rs__item--wrong'"
+            >
+              <span class="rs__item-num">{{ i + 1 }}</span>
+              <span class="rs__item-label">{{ exerciseLabel(result.exerciseId) }}</span>
+              <span class="rs__item-icon" v-if="result.correct">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              <span class="rs__item-icon" v-else>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </span>
+              <button
+                v-if="!result.correct"
+                class="rs__item-review"
+                @click="scrollToSection('section-content'); closeResults()"
+              >{{ t('lessonPage.reviewLesson') }}</button>
+            </div>
+          </div>
+
+          <div class="rs__actions">
+            <button class="rs__btn rs__btn--primary" @click="retryExercise">{{ t('lessonPage.retryExercises') }}</button>
+            <button class="rs__btn rs__btn--ghost" @click="closeResults">{{ t('lessonPage.close') }}</button>
+          </div>
+        </aside>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -697,16 +1055,469 @@ const heroChars = computed(() => {
 .ex-card__label { font-size: var(--text-xs); color: var(--color-text-muted); }
 
 /* ══════════════════════════════════════
-   BACK ROW
+   BOTTOM NAVIGATION
    ══════════════════════════════════════ */
-.back-row { display: flex; justify-content: center; padding: var(--space-10) 0 var(--space-16); }
+.bottom-nav {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: var(--space-10) var(--space-6) var(--space-16);
+  gap: var(--space-3);
+}
+.bottom-nav__btn {
+  min-width: 0;
+  white-space: nowrap;
+}
+.bottom-nav__btn--center {
+  text-align: center;
+}
+.bottom-nav__btn--disabled {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  color: var(--color-text-muted);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm); font-weight: 600;
+  opacity: 0.5; cursor: not-allowed;
+}
+.bottom-nav__spacer { flex: 1; }
+
+/* ══════════════════════════════════════
+   FIXED SNACKBAR
+   ══════════════════════════════════════ */
+.snackbar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.85);
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
+}
+:root.dark .snackbar {
+  background: rgba(20, 20, 30, 0.85);
+}
+
+.snackbar__progress-track {
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--color-bg-muted);
+}
+.snackbar__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--cc, var(--color-primary)), color-mix(in srgb, var(--cc, var(--color-primary)) 60%, #06b6d4));
+  transition: width 150ms ease-out;
+  border-radius: 0 2px 2px 0;
+}
+
+.snackbar__content {
+  display: flex; align-items: center; gap: var(--space-4);
+  height: 52px;
+  position: relative;
+}
+
+.snackbar__back {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; flex-shrink: 0;
+  border-radius: var(--radius-full);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: all 200ms ease;
+}
+.snackbar__back:hover {
+  background: color-mix(in srgb, var(--cc) 10%, transparent);
+  color: var(--cc, var(--color-primary));
+}
+
+.snackbar__pct {
+  font-size: var(--text-xs); font-weight: 700;
+  color: var(--color-text-muted);
+  min-width: 36px;
+  font-variant-numeric: tabular-nums;
+}
+
+.snackbar__complete {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  font-size: var(--text-sm); font-weight: 700;
+  color: #22c55e;
+  white-space: nowrap;
+}
+
+.snackbar__exercises {
+  display: flex; gap: var(--space-2);
+  margin-left: auto; align-items: center;
+}
+
+.snackbar__ex {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-full);
+  text-decoration: none;
+  background: var(--color-bg-muted);
+  border: 2px solid var(--color-border);
+  color: var(--color-text-muted);
+  transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.snackbar__ex-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--color-text-subtle);
+}
+.snackbar__ex--done {
+  background: color-mix(in srgb, var(--ex-color) 12%, transparent);
+  border-color: var(--ex-color);
+  color: var(--ex-color);
+}
+.snackbar__ex--done .snackbar__ex-dot { display: none; }
+.snackbar__ex:hover {
+  transform: scale(1.1);
+  border-color: var(--ex-color, var(--color-border-strong));
+}
+
+/* Snackbar slide animation */
+.snackbar-slide-enter-active,
+.snackbar-slide-leave-active {
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms ease;
+}
+.snackbar-slide-enter-from,
+.snackbar-slide-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+/* Completion text animation */
+.snackbar-complete-enter-active {
+  transition: opacity 400ms ease, transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.snackbar-complete-leave-active {
+  transition: opacity 300ms ease;
+}
+.snackbar-complete-enter-from {
+  opacity: 0; transform: translateY(6px);
+}
+.snackbar-complete-leave-to {
+  opacity: 0;
+}
+
+/* ══════════════════════════════════════
+   FAB — Section navigation
+   ══════════════════════════════════════ */
+.fab {
+  position: fixed;
+  bottom: 80px;
+  right: var(--space-6);
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.fab__btn {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  background: var(--cc, var(--color-primary));
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--cc, var(--color-primary)) 35%, transparent);
+  transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fab__btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--cc, var(--color-primary)) 45%, transparent);
+}
+
+.fab__btn--open {
+  background: var(--color-bg-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+}
+
+.fab__menu {
+  padding: var(--space-2);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  min-width: 200px; max-width: 260px;
+}
+:root.dark .fab__menu { background: rgba(20, 20, 30, 0.9); }
+
+/* Single scrollable list — everything flows together */
+.fab__scroll {
+  display: flex; flex-direction: column; gap: 1px;
+  max-height: min(55vh, 360px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.fab__item {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: none; background: transparent;
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs); font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer; transition: all 150ms ease;
+  white-space: nowrap; text-align: left;
+}
+.fab__item:hover {
+  background: color-mix(in srgb, var(--cc) 8%, transparent);
+  color: var(--cc, var(--color-primary));
+}
+/* Icon items — vocab, exercises */
+.fab__item-icon {
+  width: 22px; height: 22px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--cc) 10%, var(--color-bg-muted));
+  color: var(--cc, var(--color-primary));
+  transition: all 150ms ease;
+}
+.fab__item-icon svg { opacity: 0.8; }
+.fab__item--icon:hover .fab__item-icon {
+  background: color-mix(in srgb, var(--cc) 18%, transparent);
+}
+.fab__item--icon:hover .fab__item-icon svg { opacity: 1; }
+
+/* Part items — slightly indented, with number pill */
+.fab__item--part { padding-left: calc(var(--space-3) + 4px); }
+.fab__item-num {
+  width: 18px; height: 18px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.55rem; font-weight: 800;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-muted);
+  color: var(--color-text-muted);
+}
+.fab__item--part span:last-child {
+  overflow: hidden; text-overflow: ellipsis;
+}
+
+/* FAB slide animation */
+.fab-slide-enter-active,
+.fab-slide-leave-active {
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms ease;
+}
+.fab-slide-enter-from,
+.fab-slide-leave-to {
+  transform: translateY(20px);
+  opacity: 0;
+}
+
+/* FAB menu animation */
+.fab-menu-enter-active {
+  transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease;
+}
+.fab-menu-leave-active {
+  transition: transform 200ms ease, opacity 150ms ease;
+}
+.fab-menu-enter-from {
+  transform: translateY(12px) scale(0.95);
+  opacity: 0;
+}
+.fab-menu-leave-to {
+  transform: translateY(8px) scale(0.97);
+  opacity: 0;
+}
+
+/* ══════════════════════════════════════
+   RESULTS SIDEBAR
+   ══════════════════════════════════════ */
+.lp--sidebar-open {
+  margin-left: 360px;
+  transition: margin-left 350ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rs-overlay {
+  position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+
+.rs {
+  position: fixed; top: var(--header-h, 56px); left: 0;
+  width: 360px; height: calc(100vh - var(--header-h, 56px));
+  z-index: 40;
+  display: flex; flex-direction: column;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px) saturate(180%);
+  border-right: 1px solid var(--color-border);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.08);
+  pointer-events: all;
+  overflow-y: auto;
+}
+:root.dark .rs {
+  background: rgba(20, 20, 30, 0.92);
+}
+
+.rs__header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+.rs__title {
+  font-size: var(--text-lg); font-weight: 700;
+  color: var(--color-text); margin: 0;
+}
+.rs__close {
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: var(--radius-full);
+  border: none; background: transparent;
+  color: var(--color-text-muted); cursor: pointer;
+  transition: all 200ms ease;
+}
+.rs__close:hover {
+  background: var(--color-bg-muted); color: var(--color-text);
+}
+
+/* Score block */
+.rs__score-block {
+  padding: var(--space-5) var(--space-6);
+  margin: var(--space-4) var(--space-4) 0;
+  border-radius: var(--radius-xl);
+  display: flex; flex-direction: column; gap: var(--space-2);
+}
+.rs__score-block--pass {
+  background: #f0fdf4; border: 1px solid #bbf7d0;
+}
+.rs__score-block--fail {
+  background: #fef2f2; border: 1px solid #fecaca;
+}
+:root.dark .rs__score-block--pass { background: rgba(22, 163, 74, 0.1); border-color: rgba(22, 163, 74, 0.3); }
+:root.dark .rs__score-block--fail { background: rgba(220, 38, 38, 0.1); border-color: rgba(220, 38, 38, 0.3); }
+
+.rs__score-top {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.rs__diff-badge {
+  font-size: var(--text-xs); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--cc, var(--color-primary));
+  padding: 2px var(--space-2);
+  background: color-mix(in srgb, var(--cc) 12%, transparent);
+  border-radius: var(--radius-full);
+}
+.rs__score-pct {
+  font-size: var(--text-2xl); font-weight: 800;
+  color: var(--color-text);
+}
+.rs__score-bar {
+  height: 6px; background: var(--color-bg-muted);
+  border-radius: var(--radius-full); overflow: hidden;
+}
+.rs__score-fill {
+  height: 100%; border-radius: var(--radius-full);
+  transition: width 600ms ease;
+}
+.rs__score-block--pass .rs__score-fill { background: #22c55e; }
+.rs__score-block--fail .rs__score-fill { background: #ef4444; }
+.rs__pass-label {
+  font-size: var(--text-xs); font-weight: 700;
+}
+.rs__score-block--pass .rs__pass-label { color: #16a34a; }
+.rs__score-block--fail .rs__pass-label { color: #dc2626; }
+
+/* Results list */
+.rs__results-list {
+  flex: 1; overflow-y: auto;
+  padding: var(--space-4);
+  display: flex; flex-direction: column; gap: var(--space-2);
+}
+.rs__item {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  transition: background 150ms ease;
+}
+.rs__item--correct { background: #f0fdf4; }
+.rs__item--wrong { background: #fef2f2; }
+:root.dark .rs__item--correct { background: rgba(22, 163, 74, 0.08); }
+:root.dark .rs__item--wrong { background: rgba(220, 38, 38, 0.08); }
+
+.rs__item-num {
+  width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: var(--text-xs); font-weight: 700;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-muted);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+.rs__item-label {
+  flex: 1; font-size: var(--text-sm); font-weight: 500;
+  color: var(--color-text-secondary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.rs__item-icon {
+  flex-shrink: 0; display: flex; align-items: center;
+}
+.rs__item-review {
+  font-size: var(--text-xs); font-weight: 600;
+  color: var(--cc, var(--color-primary));
+  background: transparent; border: none;
+  cursor: pointer; white-space: nowrap;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: opacity 150ms ease;
+}
+.rs__item-review:hover { opacity: 0.7; }
+
+/* Actions */
+.rs__actions {
+  padding: var(--space-4) var(--space-6) var(--space-6);
+  display: flex; flex-direction: column; gap: var(--space-2);
+  flex-shrink: 0;
+  border-top: 1px solid var(--color-border);
+}
+.rs__btn {
+  padding: var(--space-3) var(--space-5);
+  border: none; border-radius: var(--radius-xl);
+  font-size: var(--text-sm); font-weight: 700;
+  cursor: pointer; transition: all 200ms ease;
+  text-align: center;
+}
+.rs__btn--primary {
+  background: var(--cc, var(--color-primary)); color: #fff;
+}
+.rs__btn--primary:hover {
+  transform: translateY(-1px); box-shadow: var(--shadow-md);
+}
+.rs__btn--ghost {
+  background: transparent; color: var(--color-text-muted);
+}
+.rs__btn--ghost:hover {
+  background: var(--color-bg-muted); color: var(--color-text);
+}
+
+/* Sidebar slide transition */
+.sidebar-slide-enter-active {
+  transition: transform 350ms cubic-bezier(0.16, 1, 0.3, 1), opacity 250ms ease;
+}
+.sidebar-slide-leave-active {
+  transition: transform 300ms ease, opacity 200ms ease;
+}
+.sidebar-slide-enter-from {
+  transform: translateX(-100%); opacity: 0;
+}
+.sidebar-slide-leave-to {
+  transform: translateX(-100%); opacity: 0;
+}
 
 /* ══════════════════════════════════════
    PRINT
    ══════════════════════════════════════ */
 @media print {
   .lp-shapes { display: none !important; }
-  .hero, .ex-section, .back-row, .vocab-bar__actions, .vocab-footer { display: none !important; }
+  .snackbar { display: none !important; }
+  .fab { display: none !important; }
+  .rs-overlay { display: none !important; }
+  .hero, .ex-section, .bottom-nav, .vocab-bar__actions, .vocab-footer { display: none !important; }
   .vocab-section { padding: var(--space-4) 0 !important; }
   .vocab-collapse { grid-template-rows: 1fr !important; }
   .vocab-grid { grid-template-columns: 1fr 1fr 1fr !important; gap: 6px !important; }
@@ -725,5 +1536,14 @@ const heroChars = computed(() => {
   .vocab-bar { flex-wrap: wrap; }
   .vocab-bar__actions { width: 100%; justify-content: flex-start; }
   .ex-grid { grid-template-columns: 1fr; }
+  .bottom-nav { flex-wrap: wrap; justify-content: center; gap: var(--space-2); padding-bottom: calc(var(--space-16) + 56px); }
+  .bottom-nav__spacer { display: none; }
+  .snackbar__pct { display: none; }
+  .lp { padding-bottom: 0; }
+  .fab { bottom: 70px; right: var(--space-4); }
+  .fab__btn { width: 42px; height: 42px; }
+  .lp--sidebar-open { margin-left: 0; }
+  .rs-overlay { pointer-events: all; background: rgba(0, 0, 0, 0.3); }
+  .rs { width: 100%; }
 }
 </style>

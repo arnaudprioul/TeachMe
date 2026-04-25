@@ -92,6 +92,27 @@ export const useReviewsStore = defineStore('reviews', () => {
     cards.value = cards.value.filter(c => c.id !== id)
   }
 
+  /** Add multiple cards in a single API call */
+  async function addBatch(items: Array<{ lang: string; wordId: string; courseId: string; lessonId: number }>) {
+    const res = await $fetch<{ data: IReviewCard[] }>('/api/v1/reviews/batch', {
+      method: 'POST', headers: authHeaders(), body: { items },
+    })
+    for (const card of res.data) {
+      const idx = cards.value.findIndex(c => c.id === card.id)
+      if (idx >= 0) cards.value[idx] = card
+      else cards.value.push(card)
+    }
+    return res.data
+  }
+
+  /** Remove multiple cards in a single API call */
+  async function removeBatch(ids: string[]) {
+    await $fetch('/api/v1/reviews/batch-delete', {
+      method: 'POST', headers: authHeaders(), body: { ids },
+    })
+    cards.value = cards.value.filter(c => !ids.includes(c.id))
+  }
+
   async function rate(id: string, quality: number) {
     const res = await $fetch<{ data: IReviewCard }>(`/api/v1/reviews/${id}/rate`, {
       method: 'POST', headers: authHeaders(), body: { quality },
@@ -111,6 +132,6 @@ export const useReviewsStore = defineStore('reviews', () => {
   return {
     cards, loading, loaded,
     byLang, forLang, isInDeck, findCard, dueCards,
-    load, add, remove, rate,
+    load, add, addBatch, remove, removeBatch, rate,
   }
 })

@@ -3,15 +3,19 @@ import { getCourseModule } from '~/composables/data/courses'
 import { useCourses } from '~/composables/useCourses'
 import type { ICourseModule } from '~/composables/data/courses/types'
 
+// ── Global cache: one fetch per courseKey, shared across all instances ──
+const _apiCache = new Map<string, ICourseModule>()
+const _fetchingKeys = new Set<string>()
+const _apiModuleStore = ref<Record<string, ICourseModule | null>>({})
+
 /**
  * Central composable for course pages.
  * Reads route params and resolves the course module + helpers.
  *
- * Lesson-based courses (Korean Level 1, Japanese Level 1) are fetched from
- * the API at `/api/v1/courses/:id`. Character-based courses (Hangeul,
- * Hiragana, Katakana) are still loaded from the static registry because
- * they carry non-serializable data (stroke SVGs, category predicates,
- * imported image assets).
+ * Lesson-based courses (Korean Level 1, Japanese Level 1) use the static
+ * registry. Character-based courses (Hangeul, Hiragana, Katakana) also use
+ * the static registry. API fetch is cached globally so it only happens once
+ * per courseKey regardless of how many components call useCourseContext().
  */
 export function useCourseContext() {
   const route = useRoute()
@@ -21,38 +25,36 @@ export function useCourseContext() {
   const course = computed(() => (route.params.course as string) || '')
   const courseKey = computed(() => `${lang.value}-${course.value}`)
 
-  // Static module lookup (character courses + fallback for lesson courses
-  // while the API request is in flight — prevents blank flash on navigation).
   const staticModule = computed(() => getCourseModule(lang.value, course.value))
-
-  // API-fetched module, populated when the course is lesson-based.
-  const apiModule = ref<ICourseModule | null>(null)
 
   function isLessonCourse(m: ICourseModule | undefined): boolean {
     return !!m?.lessons && m.lessons.length > 0
   }
 
-  // Fetch from API for lesson courses whenever courseKey changes.
+  // Fetch once per courseKey, cache globally
   watch(courseKey, async (key) => {
-    if (!key || !lang.value || !course.value) {
-      apiModule.value = null
-      return
-    }
+    if (!key || !lang.value || !course.value) return
     const sm = staticModule.value
-    if (!isLessonCourse(sm)) {
-      // Character course or unknown course — no API fetch, use static.
-      apiModule.value = null
+    if (!isLessonCourse(sm)) return
+    if (_apiCache.has(key)) {
+      _apiModuleStore.value[key] = _apiCache.get(key)!
       return
     }
+    if (_fetchingKeys.has(key)) return // already fetching
 
+    _fetchingKeys.add(key)
     try {
       const res = await $fetch<{ data: ICourseModule }>(`/api/v1/courses/${key}`)
-      apiModule.value = res.data
+      _apiCache.set(key, res.data)
+      _apiModuleStore.value = { ..._apiModuleStore.value, [key]: res.data }
     } catch (err) {
-      console.warn(`[useCourseContext] API fetch failed for ${key}, falling back to static:`, err)
-      apiModule.value = null
+      console.warn(`[useCourseContext] API fetch failed for ${key}:`, err)
+    } finally {
+      _fetchingKeys.delete(key)
     }
   }, { immediate: true })
+
+  const apiModule = computed(() => _apiModuleStore.value[courseKey.value] ?? null)
 
   const module = computed<ICourseModule | undefined>(() => apiModule.value ?? staticModule.value)
   const language = computed(() => getBySlug(lang.value))
@@ -77,6 +79,7 @@ export function useCourseContext() {
     lessonResults:(id: number) => `${basePath.value}/lessons/${id}/results`,
     lessonExercises:(id: number) => `${basePath.value}/lessons/${id}/exercises`,
     lessonExercisesResults: (id: number) => `${basePath.value}/lessons/${id}/exercises/results`,
+    exam:         `${basePath.value}/exam`,
   }))
 
   /** Returns a fully-qualified locale key under the course's localePrefix. */

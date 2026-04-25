@@ -42,8 +42,9 @@ export function useCourseAudio() {
     return full.split('-')[0] || 'ko'
   }
 
-  function buildUrl(text: string): string {
-    return `/api/v1/tts?text=${encodeURIComponent(text)}&lang=${encodeURIComponent(ttsLangCode())}`
+  function buildUrl(text: string, lang?: string): string {
+    const l = lang ?? ttsLangCode()
+    return `/api/v1/tts?text=${encodeURIComponent(text)}&lang=${encodeURIComponent(l)}`
   }
 
   /**
@@ -64,12 +65,16 @@ export function useCourseAudio() {
     fetch(buildUrl(text), { method: 'GET', cache: 'force-cache' }).catch(() => { /* silent */ })
   }
 
-  function speak(text: string) {
+  /**
+   * @param text Text to speak
+   * @param lang Optional IETF lang code override (e.g. 'en', 'fr'). Defaults to course lang.
+   */
+  function speak(text: string, lang?: string) {
     if (typeof window === 'undefined') return
     if (!text) return
     stop()
 
-    const url = buildUrl(text)
+    const url = buildUrl(text, lang)
     isLoading.value = true
 
     const audio = new Audio(url)

@@ -238,14 +238,42 @@ async function migrate(db: ReturnType<typeof knex>): Promise<void> {
     await db.schema.createTable('user_lesson_progress', (t) => {
       t.string('id').primary()
       t.string('user_id').notNullable().references('id').inTable('users').onDelete('CASCADE')
-      t.string('lesson_id').notNullable().references('id').inTable('lessons').onDelete('CASCADE')
+      t.string('course_key').notNullable()
+      t.string('lesson_id').notNullable()
       t.boolean('completed').notNullable().defaultTo(false)
       t.integer('best_score').notNullable().defaultTo(0)
       t.integer('attempts').notNullable().defaultTo(0)
       t.timestamp('last_attempt_at').nullable()
       t.timestamp('created_at').defaultTo(db.fn.now())
       t.timestamp('updated_at').defaultTo(db.fn.now())
-      t.unique(['user_id', 'lesson_id'])
+      t.unique(['user_id', 'course_key', 'lesson_id'])
+    })
+  } else {
+    const hasCourseKey = await db.schema.hasColumn('user_lesson_progress', 'course_key')
+    if (!hasCourseKey) {
+      await db.schema.alterTable('user_lesson_progress', (t) => {
+        t.string('course_key').notNullable().defaultTo('')
+      })
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // USER EXERCISE PROGRESS
+  // ═══════════════════════════════════════════════════════
+  if (!(await db.schema.hasTable('user_exercise_progress'))) {
+    await db.schema.createTable('user_exercise_progress', (t) => {
+      t.string('id').primary()
+      t.string('user_id').notNullable().references('id').inTable('users').onDelete('CASCADE')
+      t.string('course_key').notNullable()
+      t.string('lesson_id').notNullable()
+      t.string('difficulty').notNullable()
+      t.integer('best_score').notNullable().defaultTo(0)
+      t.integer('best_streak').notNullable().defaultTo(0)
+      t.integer('attempts').notNullable().defaultTo(0)
+      t.timestamp('last_attempt_at').nullable()
+      t.timestamp('created_at').defaultTo(db.fn.now())
+      t.timestamp('updated_at').defaultTo(db.fn.now())
+      t.unique(['user_id', 'course_key', 'lesson_id', 'difficulty'])
     })
   }
 }

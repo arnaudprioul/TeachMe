@@ -25,7 +25,7 @@ const { available, comingSoon } = useCourses()
           class="course-card"
           :data-cy="`course-${course.slug}`"
         >
-          <span class="course-card__flag">{{ course.flag }}</span>
+          <img :src="course.flag" :alt="t(`courses.${course.slug}.name`)" class="course-card__flag" />
           <span class="course-card__name">{{ t(`courses.${course.slug}.name`) }}</span>
           <span class="course-card__desc">{{ t(`courses.${course.slug}.desc`) }}</span>
           <span class="course-card__badge" :style="{ background: course.colorSubtle, color: course.color }">{{ t('common.available') }}</span>
@@ -42,7 +42,7 @@ const { available, comingSoon } = useCourses()
           class="course-card course-card--locked"
           :data-cy="`course-${course.slug}`"
         >
-          <span class="course-card__flag">{{ course.flag }}</span>
+          <img :src="course.flag" :alt="t(`courses.${course.slug}.name`)" class="course-card__flag" />
           <span class="course-card__name">{{ t(`courses.${course.slug}.name`) }}</span>
           <span class="course-card__badge course-card__badge--muted">{{ t('common.soon') }}</span>
         </div>
@@ -118,7 +118,7 @@ const { available, comingSoon } = useCourses()
   cursor: default;
 }
 
-.course-card__flag { font-size: 2.2rem; line-height: 1; }
+.course-card__flag { width: 48px; height: 36px; object-fit: cover; border-radius: var(--radius-sm); box-shadow: var(--shadow-xs); }
 
 .course-card__name {
   font-size: var(--text-sm);

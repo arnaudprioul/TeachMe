@@ -103,6 +103,8 @@ async function logout() {
     <main class="app-main">
       <slot />
     </main>
+
+    <ToastContainer />
   </div>
 </template>
 

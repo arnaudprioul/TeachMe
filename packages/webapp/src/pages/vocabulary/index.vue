@@ -104,7 +104,7 @@ function startReview(langSlug?: string) {
           v-for="group in groups" :key="group.langSlug"
           class="card"
         >
-          <h2 class="card__title">{{ group.language?.flag }} {{ t(`courses.${group.langSlug}.name`) }}</h2>
+          <h2 class="card__title"><img v-if="group.language?.flag" :src="group.language.flag" alt="" style="width:22px;height:16px;object-fit:cover;border-radius:3px;vertical-align:middle;margin-right:6px" />{{ t(`courses.${group.langSlug}.name`) }}</h2>
           <div class="lang-head">
             <div class="lang-head__stats">
               <span class="lang-chip">{{ t('vocabulary.cardsCount', { n: group.cards.length }) }}</span>
